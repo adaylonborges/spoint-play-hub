@@ -1,5 +1,6 @@
 import { BottomNav } from "./BottomNav";
 import { Sparkles, Users, CalendarCheck, Wallet } from "lucide-react";
+import spointLogoWhite from "@/assets/spoint-logo-white.png";
 
 export function AppShell({ children, hideNav }: { children: React.ReactNode; hideNav?: boolean }) {
   return (
