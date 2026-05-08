@@ -1,55 +1,38 @@
-## Objetivo
+# Ajustes: UI mobile do evento + Adicionar à agenda
 
-Três ajustes focados:
-1. Convite redireciona corretamente após cadastro/login (incluindo Google).
-2. Home reorganizada com seções claras: convites pendentes, próximos jogos e histórico.
-3. Cabeçalho dos eventos com imagem de capa por esporte (gerada por IA).
+## 1. UI do mobile na página do evento (`src/routes/eventos.$eventId.tsx`)
 
----
+Problemas observados no viewport 390px:
+- O header com imagem usa `min-h-[280px]` apenas em `lg:`, mas no mobile o conteúdo (chip + título + endereço + data) pode estourar/cortar dependendo do texto.
+- O bloco de ações tem `-mt-6` sobreposto ao header — em telas estreitas os botões "Convidar" e "Agenda" ficam apertados / cortados.
+- Título e endereço podem transbordar em uma linha sem `break-words`.
+- Botão "voltar" e chip ficam grudados no topo (sem safe-area).
 
-## 1. Fluxo do convite (cadastro + Google)
+Ajustes:
+- Header: usar `min-h-[220px]` no mobile, `lg:min-h-[280px]`. Adicionar `pt-[env(safe-area-inset-top)]` no botão voltar.
+- Título com `break-words`, endereço com `line-clamp-2`.
+- Trocar a action row de `grid grid-cols-2 gap-2` para botões com tamanho mínimo confortável e padding interno reduzido (`py-3` em vez de `py-3.5`), e remover/reduzir o `-mt-6` para `-mt-4` para evitar sobreposição visual estranha.
+- Garantir `overflow-hidden` no wrapper do header para a imagem não vazar arredondamento.
+- Conferir cards (datas/participantes/racha) para que `text-sm` longos não quebrem layout — adicionar `truncate` / `min-w-0` onde aplicável.
+- Padding lateral consistente `px-4` no mobile e `px-5` em telas maiores.
 
-**Problema atual:** ao clicar em "Entrar para confirmar" no `/convite/$code`, o usuário vai para `/login?redirect=...`. O login com email/senha respeita o `redirect`, mas:
-- O fluxo do **Google OAuth** redireciona para `window.location.origin` (raiz), perdendo o `redirect`.
-- Após cadastro, se o perfil estiver incompleto, vai para `/onboarding` e o `redirect` é perdido para sempre.
+## 2. Adicionar à agenda — abrir app nativo
 
-**Correções:**
-- Em `login.tsx`, passar o `redirect` para o `redirect_uri` do Google: `${window.location.origin}/login?redirect=${redirect}` para que ao retornar caia novamente em `/login`, detecte sessão e siga para o destino.
-- Ao mandar para `/onboarding`, persistir o destino: `nav({ to: "/onboarding", search: { redirect } })`.
-- Em `onboarding.tsx`, ler `?redirect=` e, ao terminar, redirecionar para esse destino em vez de `/`.
-- Garantir que quando o usuário já logado abre `/convite/$code`, o "Entrar no evento" funcione sem rodar o fluxo de auth (já está OK, mas validar).
+Hoje: gera um `.ics` e força download. No mobile isso muitas vezes baixa o arquivo sem abrir o app.
 
-## 2. Home reorganizada
+Nova abordagem em `src/routes/eventos.$eventId.tsx` (substituir `addToCalendar`):
+- Trocar o botão único por um pequeno menu/sheet com opções:
+  - **Google Calendar** — abre URL universal:
+    `https://calendar.google.com/calendar/render?action=TEMPLATE&text=<title>&dates=<startUTC>/<endUTC>&details=<desc>&location=<addr>`
+    No Android com app instalado, o sistema redireciona para o app; no desktop abre o site; no iOS abre no navegador (também funciona).
+  - **Apple / Outlook (.ics)** — mantém `generateIcs` + `downloadIcs` para quem prefere.
+- Detectar mobile (`useIsMobile`) e, no mobile, padrão = Google Calendar (1 clique direto). No desktop, abrir o sheet com as duas opções.
+- Helper novo `src/lib/calendar.ts` com `buildGoogleCalendarUrl({ title, start, end, location, details })`.
 
-Substituir a lista única atual por três seções, em ordem:
+## 3. Arquivos afetados
 
-1. **Convites pendentes** — eventos onde o usuário é participante com `rsvp_status = 'invited'` (ou onde foi adicionado mas ainda não confirmou). Card destacado com botões rápidos "Vou" / "Não posso".
-2. **Próximos jogos** — eventos onde `rsvp_status in ('confirmed','maybe')` OU sou owner, com data futura ou ainda em votação.
-3. **Histórico** — eventos passados (data confirmada < hoje).
+- `src/routes/eventos.$eventId.tsx` — ajustes responsivos do header/ações + nova lógica de calendário.
+- `src/lib/calendar.ts` — novo helper para URL do Google Calendar.
+- (opcional) pequeno componente `CalendarSheet.tsx` para as duas opções.
 
-Observação: hoje, ao entrar via link de convite, o usuário já é inserido como `confirmed`. Para ter "convites pendentes" reais, mudar essa inserção para `rsvp_status = 'invited'` no `/convite/$code`, e a confirmação acontece via botão "Vou" na home ou na página do evento. Owner continua entrando como `confirmed` automaticamente.
-
-Estados vazios para cada seção.
-
-## 3. Imagem de capa por esporte
-
-- Gerar imagens (via `imagegen--generate_image`, qualidade `fast`, 16:9) para cada esporte do `SPORT_EMOJI`: futebol, futsal, vôlei, beach tennis, tênis, padel, basquete, corrida, ciclismo, etc.
-- Salvar em `src/assets/sports/<slug>.jpg`.
-- Criar `src/lib/sportImages.ts` mapeando `sport → import`.
-- Em `eventos.$eventId.tsx`, adicionar header com a imagem (altura ~180px mobile / 280px desktop) e o título sobreposto com gradient para legibilidade.
-- Fallback genérico para esportes sem imagem.
-
----
-
-## Arquivos afetados
-
-- `src/routes/login.tsx` — propagar `redirect` no Google e no caminho de onboarding.
-- `src/routes/onboarding.tsx` — ler/usar `redirect` ao concluir.
-- `src/routes/convite.$code.tsx` — inserir como `invited` em vez de `confirmed` (owner é exceção, mas owner não chega aqui).
-- `src/routes/index.tsx` — três seções (Convites pendentes / Próximos / Histórico) com query incluindo `rsvp_status`.
-- `src/routes/eventos.$eventId.tsx` — header com imagem.
-- `src/lib/sportImages.ts` (novo) + `src/assets/sports/*.jpg` (novos, gerados por IA).
-
-## Perguntas rápidas (opcional)
-
-Se preferir, ao entrar pelo link de convite o usuário já vira **confirmado** automaticamente (mais simples, sem "convites pendentes" reais — a seção fica vazia até alguém adicionar manualmente). Posso seguir com a versão `invited` proposta acima — me avise se preferir o oposto.
+Sem mudanças de banco de dados nem de outras rotas.
