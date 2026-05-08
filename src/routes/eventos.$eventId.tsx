@@ -9,6 +9,7 @@ import { useRequireAuth } from "@/hooks/useAuth";
 import { EventMap } from "@/components/EventMap";
 import { InviteSheet } from "@/components/InviteSheet";
 import { generateIcs, downloadIcs } from "@/lib/ics";
+import { getSportImage } from "@/lib/sportImages";
 
 export const Route = createFileRoute("/eventos/$eventId")({
   head: () => ({ meta: [{ title: "Evento — Spoint" }] }),
