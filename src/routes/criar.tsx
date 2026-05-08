@@ -38,7 +38,6 @@ function Criar() {
     const { data: ev } = await supabase.from("events").insert({
       owner_id: RAFAEL_ID, sport, title: title || `${sport} entre amigos`, location,
       total_cost: Number(cost) || 0,
-      challenge_id: linkedChallenge?.id ?? null,
     }).select().single();
     if (ev) {
       const validDates = dates.filter(Boolean);
