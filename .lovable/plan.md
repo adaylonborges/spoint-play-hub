@@ -1,38 +1,57 @@
-# Ajustes: UI mobile do evento + Adicionar à agenda
+## Objetivo
 
-## 1. UI do mobile na página do evento (`src/routes/eventos.$eventId.tsx`)
+Adicionar prazo de votação (até 48h antes da primeira data sugerida) com countdown visível na página do evento, e destacar a opção "Adicionar à agenda" como CTA central após a confirmação da data.
 
-Problemas observados no viewport 390px:
-- O header com imagem usa `min-h-[280px]` apenas em `lg:`, mas no mobile o conteúdo (chip + título + endereço + data) pode estourar/cortar dependendo do texto.
-- O bloco de ações tem `-mt-6` sobreposto ao header — em telas estreitas os botões "Convidar" e "Agenda" ficam apertados / cortados.
-- Título e endereço podem transbordar em uma linha sem `break-words`.
-- Botão "voltar" e chip ficam grudados no topo (sem safe-area).
+## Mudanças
 
-Ajustes:
-- Header: usar `min-h-[220px]` no mobile, `lg:min-h-[280px]`. Adicionar `pt-[env(safe-area-inset-top)]` no botão voltar.
-- Título com `break-words`, endereço com `line-clamp-2`.
-- Trocar a action row de `grid grid-cols-2 gap-2` para botões com tamanho mínimo confortável e padding interno reduzido (`py-3` em vez de `py-3.5`), e remover/reduzir o `-mt-6` para `-mt-4` para evitar sobreposição visual estranha.
-- Garantir `overflow-hidden` no wrapper do header para a imagem não vazar arredondamento.
-- Conferir cards (datas/participantes/racha) para que `text-sm` longos não quebrem layout — adicionar `truncate` / `min-w-0` onde aplicável.
-- Padding lateral consistente `px-4` no mobile e `px-5` em telas maiores.
+### 1. Lógica de prazo de votação (`src/routes/eventos.$eventId.tsx`)
 
-## 2. Adicionar à agenda — abrir app nativo
+- Calcular `earliestDate` = menor `proposed_date` entre as `dates` do evento.
+- Calcular `votingDeadline` = `earliestDate - 48h`.
+- Estado derivado:
+  - `votingOpen` = `now < votingDeadline` e sem `confirmed_date`.
+  - `votingClosed` = `now >= votingDeadline` e sem `confirmed_date`.
+  - `dateConfirmed` = `event.confirmed_date` presente.
 
-Hoje: gera um `.ics` e força download. No mobile isso muitas vezes baixa o arquivo sem abrir o app.
+### 2. Countdown de votação
 
-Nova abordagem em `src/routes/eventos.$eventId.tsx` (substituir `addToCalendar`):
-- Trocar o botão único por um pequeno menu/sheet com opções:
-  - **Google Calendar** — abre URL universal:
-    `https://calendar.google.com/calendar/render?action=TEMPLATE&text=<title>&dates=<startUTC>/<endUTC>&details=<desc>&location=<addr>`
-    No Android com app instalado, o sistema redireciona para o app; no desktop abre o site; no iOS abre no navegador (também funciona).
-  - **Apple / Outlook (.ics)** — mantém `generateIcs` + `downloadIcs` para quem prefere.
-- Detectar mobile (`useIsMobile`) e, no mobile, padrão = Google Calendar (1 clique direto). No desktop, abrir o sheet com as duas opções.
-- Helper novo `src/lib/calendar.ts` com `buildGoogleCalendarUrl({ title, start, end, location, details })`.
+- Novo componente inline `<VotingCountdown deadline={Date} />` que atualiza a cada 1s via `setInterval` em `useEffect`.
+- Formato: `Xd Yh Zm Ws` (ou só `Yh Zm Ws` quando < 24h, vermelho quando < 6h).
+- Renderizado no card "Vote na melhor data" como banner topo:
+  - "Votação encerra em **02d 14h 32m**"
+- Quando expira: bloquear cliques de voto (`disabled`) e mostrar "Votação encerrada".
 
-## 3. Arquivos afetados
+### 3. Auto-confirmação da data vencedora (cliente)
 
-- `src/routes/eventos.$eventId.tsx` — ajustes responsivos do header/ações + nova lógica de calendário.
-- `src/lib/calendar.ts` — novo helper para URL do Google Calendar.
-- (opcional) pequeno componente `CalendarSheet.tsx` para as duas opções.
+- Quando `votingClosed` e ainda sem `confirmed_date`:
+  - Eleger a `event_date` com mais votos (desempate = data mais próxima).
+  - Se o usuário for `owner`, fazer `update events set confirmed_date = winner.proposed_date`.
+  - (Convidados apenas visualizam — owner consolida ao abrir a página.)
 
-Sem mudanças de banco de dados nem de outras rotas.
+### 4. CTA central "Adicionar à agenda" pós-votação
+
+- Quando `dateConfirmed`:
+  - Esconder o card de votação.
+  - Substituir a action row de 2 botões (Convidar / Agenda) por um **bloco destacado central** logo após o header:
+    - Card com `bg-gradient-primary`, ícone calendário grande, título "Data confirmada", subtítulo com data/hora formatada, botão grande `btn-primary` "Adicionar à minha agenda" (chama `handleCalendarClick` existente).
+    - Botão secundário menor "Convidar amigos" abaixo.
+  - Mantém o sheet de escolha desktop (Google / .ics) já implementado.
+
+### 5. UI states resumidas
+
+```text
+[ header ]
+ ├─ votingOpen      → card "Vote" + countdown
+ ├─ votingClosed    → card "Votação encerrada — confirmando..."
+ └─ dateConfirmed   → CTA central "Adicionar à agenda" (destaque)
+```
+
+## Arquivos
+
+- `src/routes/eventos.$eventId.tsx` — toda a lógica acima e UI.
+- (Sem mudanças de schema, sem novas libs.)
+
+## Notas
+
+- Tudo client-side; sem cron. A consolidação acontece quando o owner abre o evento após o prazo. Suficiente para o caso de uso atual.
+- Sem alteração de RLS — `owner` já pode dar update em `events`.
