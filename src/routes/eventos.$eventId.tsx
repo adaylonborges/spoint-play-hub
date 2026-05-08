@@ -17,6 +17,24 @@ export const Route = createFileRoute("/eventos/$eventId")({
   component: EventPage,
 });
 
+function VotingCountdown({ deadline }: { deadline: Date }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const i = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(i);
+  }, []);
+  const ms = deadline.getTime() - now;
+  if (ms <= 0) return <span className="font-bold">Encerrada</span>;
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const urgent = ms < 6 * 3600 * 1000;
+  const txt = d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${m}m ${sec}s`;
+  return <span className={`font-bold tabular-nums ${urgent ? "text-destructive" : ""}`}>{txt}</span>;
+}
+
 function EventPage() {
   const { eventId } = Route.useParams();
   const { user, loading } = useRequireAuth();
