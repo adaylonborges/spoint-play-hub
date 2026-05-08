@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RAFAEL_ID } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { Coins, Gift, Sparkles } from "lucide-react";
+import { ChevronLeft, Coins, Gift, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/desafios")({
   head: () => ({ meta: [{ title: "Desafios — Spoint" }] }),
@@ -32,7 +32,10 @@ function DesafiosPage() {
   return (
     <AppShell>
       <div className="screen">
-        <h1 className="h1 mb-4">Desafios</h1>
+        <header className="flex items-center gap-3 mb-4">
+          <Link to="/" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="h-5 w-5" /></Link>
+          <h1 className="h1">Desafios</h1>
+        </header>
 
         <div className="card mb-6 flex items-center justify-between bg-secondary text-secondary-foreground border-secondary">
           <div>
