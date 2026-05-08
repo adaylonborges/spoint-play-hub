@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
@@ -16,6 +16,24 @@ export const Route = createFileRoute("/eventos/$eventId")({
   head: () => ({ meta: [{ title: "Evento — Spoint" }] }),
   component: EventPage,
 });
+
+function VotingCountdown({ deadline }: { deadline: Date }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const i = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(i);
+  }, []);
+  const ms = deadline.getTime() - now;
+  if (ms <= 0) return <span className="font-bold">Encerrada</span>;
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const urgent = ms < 6 * 3600 * 1000;
+  const txt = d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${m}m ${sec}s`;
+  return <span className={`font-bold tabular-nums ${urgent ? "text-destructive" : ""}`}>{txt}</span>;
+}
 
 function EventPage() {
   const { eventId } = Route.useParams();
@@ -53,6 +71,31 @@ function EventPage() {
   const confirmed = (parts ?? []).filter((p: any) => p.rsvp_status === "confirmed");
   const perPerson = event && confirmed.length ? (Number(event.total_cost) / confirmed.length).toFixed(2) : "0.00";
   const isOwner = event.owner_id === user.id;
+
+  const earliestDate = useMemo(() => {
+    const list = (dates ?? []).map((d: any) => new Date(d.proposed_date).getTime()).filter((n: number) => !isNaN(n));
+    return list.length ? new Date(Math.min(...list)) : null;
+  }, [dates]);
+  const votingDeadline = earliestDate ? new Date(earliestDate.getTime() - 48 * 3600 * 1000) : null;
+  const dateConfirmed = !!event.confirmed_date;
+  const votingOpen = !dateConfirmed && !!votingDeadline && Date.now() < votingDeadline.getTime() && (dates ?? []).length > 0;
+  const votingClosed = !dateConfirmed && !!votingDeadline && Date.now() >= votingDeadline.getTime() && (dates ?? []).length > 0;
+
+  // Owner auto-confirma data vencedora após o prazo
+  useEffect(() => {
+    if (!votingClosed || !isOwner || !dates || dates.length === 0) return;
+    const ranked = [...dates].map((d: any) => ({
+      id: d.id,
+      date: d.proposed_date,
+      votes: d.event_date_votes?.length ?? 0,
+      time: new Date(d.proposed_date).getTime(),
+    })).sort((a, b) => b.votes - a.votes || a.time - b.time);
+    const winner = ranked[0];
+    if (!winner) return;
+    supabase.from("events").update({ confirmed_date: winner.date }).eq("id", eventId).then(() => {
+      qc.invalidateQueries({ queryKey: ["event", eventId] });
+    });
+  }, [votingClosed, isOwner, dates, eventId, qc]);
 
   const setRsvp = async (status: string) => {
     if (me) {
@@ -133,15 +176,37 @@ function EventPage() {
         </div>
 
         <div className="relative z-10 px-4 sm:px-5 -mt-4 pb-28 space-y-4">
-          {/* Action row */}
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setShowInvite(true)} className="btn-primary text-sm px-3 py-3">
-              <Share2 className="h-4 w-4" /> Convidar
-            </button>
-            <button onClick={handleCalendarClick} className="btn-ghost text-sm px-3 py-3">
-              <CalendarPlus className="h-4 w-4" /> Agenda
-            </button>
-          </div>
+          {/* Action row / CTA */}
+          {dateConfirmed ? (
+            <div className="card relative overflow-hidden text-center" style={{ background: "var(--gradient-primary, hsl(var(--primary)))" }}>
+              <div className="flex flex-col items-center gap-3 py-2 text-primary-foreground">
+                <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                  <CalendarPlus className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide opacity-90">Data confirmada</p>
+                  <p className="font-bold text-lg leading-tight">
+                    {new Date(event.confirmed_date!).toLocaleString("pt-BR", { dateStyle: "full", timeStyle: "short" })}
+                  </p>
+                </div>
+                <button onClick={handleCalendarClick} className="w-full rounded-2xl bg-white text-primary font-bold py-3 px-4 inline-flex items-center justify-center gap-2 shadow-lg">
+                  <CalendarPlus className="h-5 w-5" /> Adicionar à minha agenda
+                </button>
+                <button onClick={() => setShowInvite(true)} className="text-sm font-semibold opacity-90 inline-flex items-center gap-1">
+                  <Share2 className="h-4 w-4" /> Convidar amigos
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setShowInvite(true)} className="btn-primary text-sm px-3 py-3">
+                <Share2 className="h-4 w-4" /> Convidar
+              </button>
+              <button onClick={handleCalendarClick} className="btn-ghost text-sm px-3 py-3" disabled={!calendarPayload()}>
+                <CalendarPlus className="h-4 w-4" /> Agenda
+              </button>
+            </div>
+          )}
 
           {/* Map */}
           {event.latitude && event.longitude && (
@@ -174,15 +239,25 @@ function EventPage() {
           </div>
 
           {/* Date voting */}
-          {(dates ?? []).length > 0 && !event.confirmed_date && (
+          {(dates ?? []).length > 0 && !dateConfirmed && (
             <div className="card">
-              <p className="label">Vote na melhor data</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="label mb-0">Vote na melhor data</p>
+                {votingDeadline && (
+                  <span className="text-xs">
+                    {votingOpen ? <>Encerra em <VotingCountdown deadline={votingDeadline} /></> : <span className="font-bold text-destructive">Votação encerrada</span>}
+                  </span>
+                )}
+              </div>
+              {votingClosed && (
+                <p className="text-xs text-muted-foreground mb-2">Confirmando data vencedora…</p>
+              )}
               <div className="space-y-2">
                 {dates!.map((d: any) => {
                   const votes = d.event_date_votes?.length ?? 0;
                   const mine = d.event_date_votes?.some((v: any) => v.user_id === user.id);
                   return (
-                    <button key={d.id} onClick={()=>vote(d.id)} className={`w-full flex items-center justify-between rounded-xl p-3 border ${mine ? "bg-accent border-primary" : "bg-card border-border"}`}>
+                    <button key={d.id} onClick={()=>vote(d.id)} disabled={!votingOpen} className={`w-full flex items-center justify-between rounded-xl p-3 border disabled:opacity-60 disabled:cursor-not-allowed ${mine ? "bg-accent border-primary" : "bg-card border-border"}`}>
                       <span className="text-sm font-medium">{new Date(d.proposed_date).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</span>
                       <span className="text-xs font-bold">{votes} voto{votes!==1?"s":""}</span>
                     </button>
