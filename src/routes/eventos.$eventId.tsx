@@ -23,6 +23,7 @@ function EventPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
+  const [showCal, setShowCal] = useState(false);
 
   const { data: event } = useQuery({
     enabled: !!user,
