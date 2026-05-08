@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
+import { Route as ConviteCodeRouteImport } from './routes/convite.$code'
 import { Route as ChatEventIdRouteImport } from './routes/chat.$eventId'
 
 const PerfilRoute = PerfilRouteImport.update({
@@ -47,6 +48,11 @@ const EventosEventIdRoute = EventosEventIdRouteImport.update({
   path: '/eventos/$eventId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConviteCodeRoute = ConviteCodeRouteImport.update({
+  id: '/convite/$code',
+  path: '/convite/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ChatEventIdRoute = ChatEventIdRouteImport.update({
   id: '/chat/$eventId',
   path: '/chat/$eventId',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
   '/chat/$eventId': typeof ChatEventIdRoute
+  '/convite/$code': typeof ConviteCodeRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
   '/chat/$eventId': typeof ChatEventIdRoute
+  '/convite/$code': typeof ConviteCodeRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
 }
 export interface FileRoutesById {
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
   '/chat/$eventId': typeof ChatEventIdRoute
+  '/convite/$code': typeof ConviteCodeRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
 }
 export interface FileRouteTypes {
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/perfil'
     | '/chat/$eventId'
+    | '/convite/$code'
     | '/eventos/$eventId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/perfil'
     | '/chat/$eventId'
+    | '/convite/$code'
     | '/eventos/$eventId'
   id:
     | '__root__'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/perfil'
     | '/chat/$eventId'
+    | '/convite/$code'
     | '/eventos/$eventId'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   PerfilRoute: typeof PerfilRoute
   ChatEventIdRoute: typeof ChatEventIdRoute
+  ConviteCodeRoute: typeof ConviteCodeRoute
   EventosEventIdRoute: typeof EventosEventIdRoute
 }
 
@@ -165,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventosEventIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/convite/$code': {
+      id: '/convite/$code'
+      path: '/convite/$code'
+      fullPath: '/convite/$code'
+      preLoaderRoute: typeof ConviteCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/chat/$eventId': {
       id: '/chat/$eventId'
       path: '/chat/$eventId'
@@ -182,18 +202,9 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   PerfilRoute: PerfilRoute,
   ChatEventIdRoute: ChatEventIdRoute,
+  ConviteCodeRoute: ConviteCodeRoute,
   EventosEventIdRoute: EventosEventIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
