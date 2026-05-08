@@ -75,18 +75,38 @@ function EventPage() {
     qc.invalidateQueries({ queryKey: ["dates", eventId] });
   };
 
-  const addToCalendar = () => {
+  const calendarPayload = () => {
     const startStr = event.confirmed_date ?? (dates ?? []).find((d: any) => d.proposed_date)?.proposed_date;
-    if (!startStr) return;
-    const ics = generateIcs({
-      uid: event.id,
-      title: event.title,
+    if (!startStr) return null;
+    return {
       start: new Date(startStr),
+      title: event.title,
       location: event.address ?? event.location ?? "",
-      description: `Evento Spoint. Veja detalhes: ${window.location.origin}/eventos/${event.id}`,
+      details: `Evento Spoint. Veja detalhes: ${window.location.origin}/eventos/${event.id}`,
       url: `${window.location.origin}/eventos/${event.id}`,
-    });
+    };
+  };
+
+  const openGoogleCalendar = () => {
+    const p = calendarPayload();
+    if (!p) return;
+    const url = buildGoogleCalendarUrl({ title: p.title, start: p.start, location: p.location, details: p.details });
+    window.open(url, "_blank", "noopener,noreferrer");
+    setShowCal(false);
+  };
+
+  const downloadIcsFile = () => {
+    const p = calendarPayload();
+    if (!p) return;
+    const ics = generateIcs({ uid: event.id, title: p.title, start: p.start, location: p.location, description: p.details, url: p.url });
     downloadIcs(`${event.title.replace(/\s+/g, "_")}.ics`, ics);
+    setShowCal(false);
+  };
+
+  const handleCalendarClick = () => {
+    if (!calendarPayload()) return;
+    if (isMobileUA()) openGoogleCalendar();
+    else setShowCal(true);
   };
 
   return (
