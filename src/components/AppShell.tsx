@@ -1,5 +1,6 @@
 import { BottomNav } from "./BottomNav";
 import { Sparkles, Users, CalendarCheck, Wallet } from "lucide-react";
+import spointLogoWhite from "@/assets/spoint-logo-white.png";
 
 export function AppShell({ children, hideNav }: { children: React.ReactNode; hideNav?: boolean }) {
   return (
@@ -7,8 +8,8 @@ export function AppShell({ children, hideNav }: { children: React.ReactNode; hid
       {/* Desktop-only side panel with brand context */}
       <aside className="hidden lg:flex flex-col justify-between p-12 text-white" style={{ background: "var(--gradient-hero)" }}>
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="spoint-wordmark text-3xl text-primary">spoint</span>
+          <div className="mb-2">
+            <img src={spointLogoWhite} alt="Spoint" className="h-10 w-auto" />
           </div>
           <p className="text-sm opacity-70 max-w-sm mt-8">
             A comunidade que organiza seus jogos. Convide amigos, escolha a melhor data e divida o custo sem complicação.

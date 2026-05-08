@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { AppShell } from "@/components/AppShell";
+import spointLogo from "@/assets/spoint-logo.png";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Entrar — Spoint" }] }),
@@ -50,7 +51,7 @@ function Login() {
     <AppShell hideNav>
       <div className="screen min-h-screen flex flex-col">
         <div className="text-center mb-10 mt-6">
-          <h1 className="spoint-wordmark text-5xl text-foreground">spoint</h1>
+          <img src={spointLogo} alt="Spoint" className="h-12 w-auto mx-auto" />
           <p className="muted mt-2">A comunidade dos seus jogos</p>
         </div>
 

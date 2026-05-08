@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RAFAEL_ID, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
 import { Bell, Calendar, ChevronRight, Plus, MapPin } from "lucide-react";
+import spointLogo from "@/assets/spoint-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -40,7 +41,7 @@ function HomePage() {
     <AppShell>
       <div className="screen">
         <header className="flex items-center justify-between mb-6">
-          <span className="spoint-wordmark text-3xl">spoint</span>
+          <img src={spointLogo} alt="Spoint" className="h-8 w-auto" />
           <button className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
             <Bell className="h-5 w-5" />
           </button>
