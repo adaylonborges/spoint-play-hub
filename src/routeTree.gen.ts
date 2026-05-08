@@ -9,38 +9,167 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RankingRouteImport } from './routes/ranking'
+import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as DesafiosRouteImport } from './routes/desafios'
+import { Route as CriarRouteImport } from './routes/criar'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
+import { Route as EventosEventIdChatRouteImport } from './routes/eventos.$eventId.chat'
 
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DesafiosRoute = DesafiosRouteImport.update({
+  id: '/desafios',
+  path: '/desafios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CriarRoute = CriarRouteImport.update({
+  id: '/criar',
+  path: '/criar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventosEventIdRoute = EventosEventIdRouteImport.update({
+  id: '/eventos/$eventId',
+  path: '/eventos/$eventId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventosEventIdChatRoute = EventosEventIdChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => EventosEventIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/criar': typeof CriarRoute
+  '/desafios': typeof DesafiosRoute
+  '/onboarding': typeof OnboardingRoute
+  '/perfil': typeof PerfilRoute
+  '/ranking': typeof RankingRoute
+  '/eventos/$eventId': typeof EventosEventIdRouteWithChildren
+  '/eventos/$eventId/chat': typeof EventosEventIdChatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/criar': typeof CriarRoute
+  '/desafios': typeof DesafiosRoute
+  '/onboarding': typeof OnboardingRoute
+  '/perfil': typeof PerfilRoute
+  '/ranking': typeof RankingRoute
+  '/eventos/$eventId': typeof EventosEventIdRouteWithChildren
+  '/eventos/$eventId/chat': typeof EventosEventIdChatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/criar': typeof CriarRoute
+  '/desafios': typeof DesafiosRoute
+  '/onboarding': typeof OnboardingRoute
+  '/perfil': typeof PerfilRoute
+  '/ranking': typeof RankingRoute
+  '/eventos/$eventId': typeof EventosEventIdRouteWithChildren
+  '/eventos/$eventId/chat': typeof EventosEventIdChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/criar'
+    | '/desafios'
+    | '/onboarding'
+    | '/perfil'
+    | '/ranking'
+    | '/eventos/$eventId'
+    | '/eventos/$eventId/chat'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/criar'
+    | '/desafios'
+    | '/onboarding'
+    | '/perfil'
+    | '/ranking'
+    | '/eventos/$eventId'
+    | '/eventos/$eventId/chat'
+  id:
+    | '__root__'
+    | '/'
+    | '/criar'
+    | '/desafios'
+    | '/onboarding'
+    | '/perfil'
+    | '/ranking'
+    | '/eventos/$eventId'
+    | '/eventos/$eventId/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CriarRoute: typeof CriarRoute
+  DesafiosRoute: typeof DesafiosRoute
+  OnboardingRoute: typeof OnboardingRoute
+  PerfilRoute: typeof PerfilRoute
+  RankingRoute: typeof RankingRoute
+  EventosEventIdRoute: typeof EventosEventIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/desafios': {
+      id: '/desafios'
+      path: '/desafios'
+      fullPath: '/desafios'
+      preLoaderRoute: typeof DesafiosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/criar': {
+      id: '/criar'
+      path: '/criar'
+      fullPath: '/criar'
+      preLoaderRoute: typeof CriarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +177,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/eventos/$eventId': {
+      id: '/eventos/$eventId'
+      path: '/eventos/$eventId'
+      fullPath: '/eventos/$eventId'
+      preLoaderRoute: typeof EventosEventIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/eventos/$eventId/chat': {
+      id: '/eventos/$eventId/chat'
+      path: '/chat'
+      fullPath: '/eventos/$eventId/chat'
+      preLoaderRoute: typeof EventosEventIdChatRouteImport
+      parentRoute: typeof EventosEventIdRoute
+    }
   }
 }
 
+interface EventosEventIdRouteChildren {
+  EventosEventIdChatRoute: typeof EventosEventIdChatRoute
+}
+
+const EventosEventIdRouteChildren: EventosEventIdRouteChildren = {
+  EventosEventIdChatRoute: EventosEventIdChatRoute,
+}
+
+const EventosEventIdRouteWithChildren = EventosEventIdRoute._addFileChildren(
+  EventosEventIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CriarRoute: CriarRoute,
+  DesafiosRoute: DesafiosRoute,
+  OnboardingRoute: OnboardingRoute,
+  PerfilRoute: PerfilRoute,
+  RankingRoute: RankingRoute,
+  EventosEventIdRoute: EventosEventIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
