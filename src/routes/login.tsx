@@ -31,9 +31,12 @@ function Login() {
 
   const goAfterAuth = async (userId: string) => {
     const target = redirect && redirect !== "/login" ? decodeURIComponent(redirect) : null;
-    // If profile is incomplete, route to onboarding first
+    // If profile is incomplete, route to onboarding first (preserving redirect)
     const { data: prof } = await supabase.from("profiles").select("main_sport").eq("id", userId).maybeSingle();
-    if (!prof?.main_sport) { nav({ to: "/onboarding" }); return; }
+    if (!prof?.main_sport) {
+      nav({ to: "/onboarding", search: target ? { redirect: encodeURIComponent(target) } as never : ({} as never) });
+      return;
+    }
     if (target) window.location.href = target;
     else nav({ to: "/" });
   };
