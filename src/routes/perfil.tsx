@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RAFAEL_ID, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { Coins, Trophy, Settings, Award } from "lucide-react";
+import { ChevronLeft, Coins, Trophy, Settings, Award } from "lucide-react";
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({ meta: [{ title: "Perfil — Spoint" }] }),
@@ -28,7 +28,10 @@ function PerfilPage() {
     <AppShell>
       <div className="screen">
         <header className="flex items-center justify-between mb-5">
-          <h1 className="h1">Perfil</h1>
+          <div className="flex items-center gap-3">
+            <Link to="/" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="h-5 w-5" /></Link>
+            <h1 className="h1">Perfil</h1>
+          </div>
           <Link to="/onboarding" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center"><Settings className="h-5 w-5" /></Link>
         </header>
 

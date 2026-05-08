@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RAFAEL_ID, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { Crown } from "lucide-react";
+import { ChevronLeft, Crown } from "lucide-react";
 
 export const Route = createFileRoute("/ranking")({
   head: () => ({ meta: [{ title: "Ranking — Spoint" }] }),
@@ -29,7 +29,10 @@ function RankingPage() {
   return (
     <AppShell>
       <div className="screen">
-        <h1 className="h1 mb-4">Ranking</h1>
+        <header className="flex items-center gap-3 mb-4">
+          <Link to="/" className="h-10 w-10 rounded-full bg-muted flex items-center justify-center"><ChevronLeft className="h-5 w-5" /></Link>
+          <h1 className="h1">Ranking</h1>
+        </header>
 
         <div className="flex gap-2 bg-muted p-1 rounded-xl mb-5">
           <button onClick={()=>setTab("geral")} className={`flex-1 py-2 rounded-lg text-sm font-semibold ${tab==="geral" ? "bg-background shadow-sm" : "text-muted-foreground"}`}>Geral</button>
