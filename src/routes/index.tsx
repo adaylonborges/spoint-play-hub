@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RAFAEL_ID, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
 import { Bell, Calendar, ChevronRight, Plus, MapPin } from "lucide-react";
+import spointLogo from "@/assets/spoint-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
