@@ -54,7 +54,7 @@ function EventPage() {
   };
 
   if (!event) return <AppShell><div className="screen">Carregando...</div></AppShell>;
-  const ch = (event as any).challenges;
+  
 
   return (
     <AppShell>
