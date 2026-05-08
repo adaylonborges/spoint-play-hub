@@ -72,14 +72,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Spoint Play Hub" },
+      { name: "description", content: "Spoint Community Hub is a mobile-first web app for organizing sports games and events among friends." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Spoint Play Hub" },
+      { property: "og:description", content: "Spoint Community Hub is a mobile-first web app for organizing sports games and events among friends." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Spoint Play Hub" },
+      { name: "twitter:description", content: "Spoint Community Hub is a mobile-first web app for organizing sports games and events among friends." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6cc28a47-f023-4a41-9252-bcdbe8527c90/id-preview-5bd9c718--a2b763a2-a555-4a13-a4b2-3de2ee484bf5.lovable.app-1778264134329.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6cc28a47-f023-4a41-9252-bcdbe8527c90/id-preview-5bd9c718--a2b763a2-a555-4a13-a4b2-3de2ee484bf5.lovable.app-1778264134329.png" },
     ],
     links: [
       {
