@@ -41,7 +41,7 @@ function HomePage() {
     <AppShell>
       <div className="screen">
         <header className="flex items-center justify-between mb-6 lg:hidden">
-          <img src={spointLogo} alt="Spoint" className="h-8 w-auto" />
+          <SpointLogo className="h-8 w-auto" />
           <button className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
             <Bell className="h-5 w-5" />
           </button>
