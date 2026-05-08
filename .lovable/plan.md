@@ -1,98 +1,55 @@
 ## Objetivo
 
-Transformar o Spoint em uma ferramenta funcional para usuários reais: autenticação real, banco de dados ligado ao usuário logado, convites por link, mapa do local e exportação para agenda. Remover todos os dados fictícios (Rafael seed, RAFAEL_ID, etc).
+Três ajustes focados:
+1. Convite redireciona corretamente após cadastro/login (incluindo Google).
+2. Home reorganizada com seções claras: convites pendentes, próximos jogos e histórico.
+3. Cabeçalho dos eventos com imagem de capa por esporte (gerada por IA).
 
 ---
 
-## 1. Autenticação real
+## 1. Fluxo do convite (cadastro + Google)
 
-- **Login/Cadastro**: email+senha e Google (já configurados). Auto-confirmar email ligado para facilitar testes.
-- **Guard de rotas**: criar layout `_authenticated` (TanStack) que redireciona para `/login` se não houver sessão. Proteger: `/`, `/criar`, `/perfil`, `/eventos/$eventId`, `/chat/$eventId`, `/onboarding`, `/convite/$eventId`.
-- **Trigger no signup**: criar automaticamente uma linha em `profiles` com `id = auth.users.id` e nome vindo do metadata (form ou Google).
-- **Pós-signup**: se `profiles.main_sport` estiver vazio → redireciona para `/onboarding`.
-- Remover completamente `RAFAEL_ID` e o seed do Rafael de `src/lib/constants.ts` e de todas as queries.
+**Problema atual:** ao clicar em "Entrar para confirmar" no `/convite/$code`, o usuário vai para `/login?redirect=...`. O login com email/senha respeita o `redirect`, mas:
+- O fluxo do **Google OAuth** redireciona para `window.location.origin` (raiz), perdendo o `redirect`.
+- Após cadastro, se o perfil estiver incompleto, vai para `/onboarding` e o `redirect` é perdido para sempre.
 
-## 2. Banco de dados — schema real com RLS
+**Correções:**
+- Em `login.tsx`, passar o `redirect` para o `redirect_uri` do Google: `${window.location.origin}/login?redirect=${redirect}` para que ao retornar caia novamente em `/login`, detecte sessão e siga para o destino.
+- Ao mandar para `/onboarding`, persistir o destino: `nav({ to: "/onboarding", search: { redirect } })`.
+- Em `onboarding.tsx`, ler `?redirect=` e, ao terminar, redirecionar para esse destino em vez de `/`.
+- Garantir que quando o usuário já logado abre `/convite/$code`, o "Entrar no evento" funcione sem rodar o fluxo de auth (já está OK, mas validar).
 
-Recriar políticas (hoje estão `USING true` — inseguras) e ligar tudo ao `auth.uid()`:
+## 2. Home reorganizada
 
-- **profiles**: `id` = auth.users.id (FK ON DELETE CASCADE). RLS: SELECT público (para mostrar nome de outros participantes), UPDATE só do dono, INSERT só do dono.
-- **events**: `owner_id` = auth.uid no insert. RLS: SELECT se for owner ou participante; UPDATE/DELETE só owner. Adicionar campos `address`, `latitude`, `longitude`, `invite_code` (slug curto único para link).
-- **event_participants**: RLS SELECT se eu sou participante do mesmo evento; INSERT permitido para qualquer autenticado (entrar via link); UPDATE só da própria linha; DELETE da própria linha ou se for owner.
-- **event_dates / event_date_votes / event_messages**: RLS baseado em ser participante do evento (via security-definer function `is_event_participant(event_id, user_id)` para evitar recursão).
-- Remover tabelas não usadas no MVP: `challenges`, `user_challenges`, `friendships`.
+Substituir a lista única atual por três seções, em ordem:
 
-## 3. Mecânica funcional
+1. **Convites pendentes** — eventos onde o usuário é participante com `rsvp_status = 'invited'` (ou onde foi adicionado mas ainda não confirmou). Card destacado com botões rápidos "Vou" / "Não posso".
+2. **Próximos jogos** — eventos onde `rsvp_status in ('confirmed','maybe')` OU sou owner, com data futura ou ainda em votação.
+3. **Histórico** — eventos passados (data confirmada < hoje).
 
-### Criar evento
-- Form pede: título, esporte, **local (com busca de endereço via Nominatim)**, data(s) propostas, custo total opcional.
-- Owner é automaticamente inserido em `event_participants` como `confirmed`.
-- Gera `invite_code` único (ex: `nanoid(8)`).
+Observação: hoje, ao entrar via link de convite, o usuário já é inserido como `confirmed`. Para ter "convites pendentes" reais, mudar essa inserção para `rsvp_status = 'invited'` no `/convite/$code`, e a confirmação acontece via botão "Vou" na home ou na página do evento. Owner continua entrando como `confirmed` automaticamente.
 
-### Convidar amigos (apenas link)
-- Tela do evento mostra botão "Convidar" → abre sheet com link `https://spoint.app/convite/{invite_code}`, botões "Copiar" e "Compartilhar no WhatsApp" (`wa.me/?text=...`).
-- Rota pública `/convite/$code`: se não logado → manda pra `/login?redirect=/convite/$code`. Se logado → mostra prévia do evento + botão "Entrar no evento" que cria linha em `event_participants` (status `confirmed`) e redireciona para `/eventos/$eventId`.
+Estados vazios para cada seção.
 
-### Página do evento
-- Lista real de participantes (foto, nome, status RSVP, pago/pendente).
-- RSVP do usuário logado (Vou / Talvez / Não).
-- Votação de datas (real, baseada em `event_date_votes`).
-- Racha real: divide por confirmados, cada um marca seu próprio "pago".
-- Chat real (já existe, ajustar para usar `auth.uid()`).
-- **Mapa**: bloco com endereço + mini-mapa Leaflet (OpenStreetMap) centrado em lat/lng. Botão "Abrir no Google Maps" (`https://www.google.com/maps?q=lat,lng`).
-- **Adicionar à agenda**: botão "Adicionar ao calendário" → gera e baixa `.ics` (sem dependência externa, função pura).
+## 3. Imagem de capa por esporte
 
-### Perfil
-- Edição real de nome, idade, cidade, esporte principal, nível, frequência, perfil social (atualiza `profiles` do usuário logado).
-- "Meus eventos" lista eventos onde o usuário é owner OU participante, separados em **Próximos** (data futura) e **Histórico** (data passada).
+- Gerar imagens (via `imagegen--generate_image`, qualidade `fast`, 16:9) para cada esporte do `SPORT_EMOJI`: futebol, futsal, vôlei, beach tennis, tênis, padel, basquete, corrida, ciclismo, etc.
+- Salvar em `src/assets/sports/<slug>.jpg`.
+- Criar `src/lib/sportImages.ts` mapeando `sport → import`.
+- Em `eventos.$eventId.tsx`, adicionar header com a imagem (altura ~180px mobile / 280px desktop) e o título sobreposto com gradient para legibilidade.
+- Fallback genérico para esportes sem imagem.
 
-### Home
-- "Próximos jogos" = eventos onde sou participante com data ≥ hoje.
-- "Histórico" = eventos passados.
-- Vazio quando não houver eventos (com CTA "Criar primeiro evento").
+---
 
-## 4. Mapa e geocoding (Nominatim + Leaflet)
+## Arquivos afetados
 
-- Componente `<AddressSearch>` com debounce que chama `https://nominatim.openstreetmap.org/search?format=json&q=...&countrycodes=br` e retorna `{display_name, lat, lon}`. Cabeçalho `User-Agent` setado via server function (Nominatim exige).
-- Componente `<EventMap lat lng />` usando `react-leaflet` + `leaflet` (CSS importado global), altura ~180px, marcador no local.
-- Salvar `address`, `latitude`, `longitude` no evento.
+- `src/routes/login.tsx` — propagar `redirect` no Google e no caminho de onboarding.
+- `src/routes/onboarding.tsx` — ler/usar `redirect` ao concluir.
+- `src/routes/convite.$code.tsx` — inserir como `invited` em vez de `confirmed` (owner é exceção, mas owner não chega aqui).
+- `src/routes/index.tsx` — três seções (Convites pendentes / Próximos / Histórico) com query incluindo `rsvp_status`.
+- `src/routes/eventos.$eventId.tsx` — header com imagem.
+- `src/lib/sportImages.ts` (novo) + `src/assets/sports/*.jpg` (novos, gerados por IA).
 
-## 5. Adicionar à agenda (.ics)
+## Perguntas rápidas (opcional)
 
-- Função `generateIcs(event)` monta string iCalendar (VEVENT com `DTSTART`, `DTEND` (start+2h), `SUMMARY`, `LOCATION` (endereço), `DESCRIPTION` com link do evento, `UID`).
-- Botão dispara download via `Blob` + `<a download="evento.ics">`.
-
-## 6. Telas e rotas finais
-
-```
-/login               público (email+senha + Google)
-/convite/$code       público (preview), exige login para entrar
-/_authenticated/
-  /                  Home (próximos + histórico do usuário)
-  /onboarding        Onboarding (4 etapas, salva no profile)
-  /criar             Criar evento (com busca de endereço)
-  /eventos/$eventId  Evento (mapa, RSVP, racha, datas, chat preview, convidar, .ics)
-  /chat/$eventId     Chat realtime
-  /perfil            Perfil + edição + meus eventos
-```
-
-## 7. Ordem de implementação
-
-1. Migration: ajustar schema (add `address/lat/lng/invite_code` em events, FK profiles→auth.users, remover challenges), recriar RLS por usuário, criar trigger `handle_new_user`, security-definer `is_event_participant`.
-2. Layout `_authenticated` + remover `RAFAEL_ID` em todas as rotas.
-3. Refatorar Login/Onboarding para criar/atualizar profile do usuário real.
-4. Instalar `leaflet`, `react-leaflet`, `nanoid`. Criar `AddressSearch` e `EventMap`.
-5. Refatorar `/criar` com busca de endereço + invite_code.
-6. Refatorar `/eventos/$eventId`: mapa, botão convidar, botão .ics, dados reais.
-7. Criar `/convite/$code`.
-8. Refatorar Home e Perfil para usar `auth.uid()` e separar próximos/histórico.
-9. Limpar dados seed do banco.
-
-## Detalhes técnicos
-
-- **Cliente**: queries client-side com `supabase` (browser client) + RLS. Sem `createServerFn` por enquanto (mantém simplicidade do MVP).
-- **Realtime do chat**: já configurado, só trocar `RAFAEL_ID` por `(await supabase.auth.getUser()).data.user.id`.
-- **Auth state**: hook `useAuth()` que escuta `onAuthStateChange` e expõe `user`, `loading`. Usado pelo guard `_authenticated`.
-- **Nominatim policy**: max 1 req/s, sempre incluir User-Agent. Fazemos debounce 500ms no input.
-- **Leaflet SSR**: importar dinamicamente no client (`useEffect` ou `<ClientOnly>`) — Leaflet acessa `window`.
-- **invite_code**: `nanoid(8)` gerado client-side, validado por unique constraint.
+Se preferir, ao entrar pelo link de convite o usuário já vira **confirmado** automaticamente (mais simples, sem "convites pendentes" reais — a seção fica vazia até alguém adicionar manualmente). Posso seguir com a versão `invited` proposta acima — me avise se preferir o oposto.
