@@ -9,6 +9,7 @@ import { useRequireAuth } from "@/hooks/useAuth";
 import { EventMap } from "@/components/EventMap";
 import { InviteSheet } from "@/components/InviteSheet";
 import { generateIcs, downloadIcs } from "@/lib/ics";
+import { buildGoogleCalendarUrl, isMobileUA } from "@/lib/calendar";
 import { getSportImage } from "@/lib/sportImages";
 
 export const Route = createFileRoute("/eventos/$eventId")({
@@ -22,6 +23,7 @@ function EventPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
   const [showInvite, setShowInvite] = useState(false);
+  const [showCal, setShowCal] = useState(false);
 
   const { data: event } = useQuery({
     enabled: !!user,
@@ -73,50 +75,70 @@ function EventPage() {
     qc.invalidateQueries({ queryKey: ["dates", eventId] });
   };
 
-  const addToCalendar = () => {
+  const calendarPayload = () => {
     const startStr = event.confirmed_date ?? (dates ?? []).find((d: any) => d.proposed_date)?.proposed_date;
-    if (!startStr) return;
-    const ics = generateIcs({
-      uid: event.id,
-      title: event.title,
+    if (!startStr) return null;
+    return {
       start: new Date(startStr),
+      title: event.title,
       location: event.address ?? event.location ?? "",
-      description: `Evento Spoint. Veja detalhes: ${window.location.origin}/eventos/${event.id}`,
+      details: `Evento Spoint. Veja detalhes: ${window.location.origin}/eventos/${event.id}`,
       url: `${window.location.origin}/eventos/${event.id}`,
-    });
+    };
+  };
+
+  const openGoogleCalendar = () => {
+    const p = calendarPayload();
+    if (!p) return;
+    const url = buildGoogleCalendarUrl({ title: p.title, start: p.start, location: p.location, details: p.details });
+    window.open(url, "_blank", "noopener,noreferrer");
+    setShowCal(false);
+  };
+
+  const downloadIcsFile = () => {
+    const p = calendarPayload();
+    if (!p) return;
+    const ics = generateIcs({ uid: event.id, title: p.title, start: p.start, location: p.location, description: p.details, url: p.url });
     downloadIcs(`${event.title.replace(/\s+/g, "_")}.ics`, ics);
+    setShowCal(false);
+  };
+
+  const handleCalendarClick = () => {
+    if (!calendarPayload()) return;
+    if (isMobileUA()) openGoogleCalendar();
+    else setShowCal(true);
   };
 
   return (
     <AppShell>
-      <div className="relative -mx-0">
-        <div className="relative text-white">
+      <div className="relative">
+        <div className="relative text-white overflow-hidden">
           <img
             src={getSportImage(event.sport)}
             alt={event.sport}
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.75) 100%)" }} />
-          <div className="relative p-6 pt-8 pb-10 lg:min-h-[280px]">
-            <button onClick={() => nav({ to: "/" })} className="h-10 w-10 rounded-full bg-white/15 backdrop-blur flex items-center justify-center mb-4">
+          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.78) 100%)" }} />
+          <div className="relative px-4 sm:px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-8 min-h-[200px] lg:min-h-[280px]">
+            <button onClick={() => nav({ to: "/" })} className="h-10 w-10 rounded-full bg-white/15 backdrop-blur flex items-center justify-center mb-3">
               <ChevronLeft className="h-5 w-5" />
             </button>
             <span className="chip-yellow mb-3">{SPORT_EMOJI[event.sport]} {event.sport}</span>
-            <h1 className="text-2xl lg:text-3xl font-bold mt-2">{event.title}</h1>
-            <p className="text-sm opacity-90 flex items-center gap-1 mt-1"><MapPin className="h-4 w-4" />{event.location}</p>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mt-2 break-words">{event.title}</h1>
+            <p className="text-sm opacity-90 flex items-start gap-1 mt-1"><MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" /><span className="line-clamp-2">{event.location}</span></p>
             {event.confirmed_date && (
               <p className="text-sm opacity-90 mt-1">{new Date(event.confirmed_date).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</p>
             )}
           </div>
         </div>
 
-        <div className="relative z-10 px-5 -mt-6 pb-28 space-y-4">
+        <div className="relative z-10 px-4 sm:px-5 -mt-4 pb-28 space-y-4">
           {/* Action row */}
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setShowInvite(true)} className="btn-primary text-sm">
+            <button onClick={() => setShowInvite(true)} className="btn-primary text-sm px-3 py-3">
               <Share2 className="h-4 w-4" /> Convidar
             </button>
-            <button onClick={addToCalendar} className="btn-ghost text-sm">
+            <button onClick={handleCalendarClick} className="btn-ghost text-sm px-3 py-3">
               <CalendarPlus className="h-4 w-4" /> Agenda
             </button>
           </div>
@@ -230,6 +252,23 @@ function EventPage() {
 
       {showInvite && event.invite_code && (
         <InviteSheet inviteCode={event.invite_code} eventTitle={event.title} onClose={() => setShowInvite(false)} />
+      )}
+
+      {showCal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setShowCal(false)}>
+          <div className="w-full max-w-[430px] bg-card rounded-t-3xl p-6 pb-8" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-lg mb-1">Adicionar à agenda</h3>
+            <p className="muted mb-4">Escolha onde salvar este evento.</p>
+            <div className="space-y-2">
+              <button onClick={openGoogleCalendar} className="btn-primary w-full">
+                <CalendarPlus className="h-4 w-4" /> Google Calendar
+              </button>
+              <button onClick={downloadIcsFile} className="btn-ghost w-full">
+                <CalendarPlus className="h-4 w-4" /> Apple / Outlook (.ics)
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppShell>
   );
