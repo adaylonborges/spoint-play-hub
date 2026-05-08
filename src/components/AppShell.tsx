@@ -1,30 +1,56 @@
 import { BottomNav } from "./BottomNav";
-import { Sparkles, Users, CalendarCheck, Wallet } from "lucide-react";
-import spointLogoWhite from "@/assets/spoint-logo-white.png";
+import { SpointLogo, SPOINT_APP_URL } from "./SpointLogo";
+import { Link, useLocation } from "@tanstack/react-router";
+import { Home, PlusCircle, User, Download } from "lucide-react";
+
+const navLinks = [
+  { to: "/", label: "Início", icon: Home, exact: true },
+  { to: "/criar", label: "Criar evento", icon: PlusCircle },
+  { to: "/perfil", label: "Perfil", icon: User },
+];
+
+function DesktopHeader() {
+  const loc = useLocation();
+  return (
+    <header className="hidden lg:flex sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
+      <div className="mx-auto w-full max-w-6xl flex items-center justify-between px-8 py-4">
+        <SpointLogo className="h-9 w-auto" />
+        <nav className="flex items-center gap-1">
+          {navLinks.map((it) => {
+            const Icon = it.icon;
+            const active = it.exact ? loc.pathname === it.to : loc.pathname.startsWith(it.to);
+            return (
+              <Link
+                key={it.to}
+                to={it.to}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  active ? "bg-secondary text-secondary-foreground" : "text-foreground hover:bg-muted"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {it.label}
+              </Link>
+            );
+          })}
+          <a
+            href={SPOINT_APP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-3 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground font-bold px-4 py-2 text-sm shadow-[var(--shadow-yellow)] hover:opacity-90"
+          >
+            <Download className="h-4 w-4" /> Baixar app
+          </a>
+        </nav>
+      </div>
+    </header>
+  );
+}
 
 export function AppShell({ children, hideNav }: { children: React.ReactNode; hideNav?: boolean }) {
   return (
-    <div className="desktop-frame">
-      {/* Desktop-only side panel with brand context */}
-      <aside className="hidden lg:flex flex-col justify-between p-12 text-white" style={{ background: "var(--gradient-hero)" }}>
-        <div>
-          <div className="mb-2">
-            <img src={spointLogoWhite} alt="Spoint" className="h-10 w-auto" />
-          </div>
-          <p className="text-sm opacity-70 max-w-sm mt-8">
-            A comunidade que organiza seus jogos. Convide amigos, escolha a melhor data e divida o custo sem complicação.
-          </p>
-        </div>
-        <ul className="space-y-4 text-sm">
-          <li className="flex items-start gap-3"><Users className="h-5 w-5 text-primary mt-0.5" /><span>Reúna a galera em um único lugar</span></li>
-          <li className="flex items-start gap-3"><CalendarCheck className="h-5 w-5 text-primary mt-0.5" /><span>Vote nas melhores datas e locais</span></li>
-          <li className="flex items-start gap-3"><Wallet className="h-5 w-5 text-primary mt-0.5" /><span>Racha automático conforme confirmações</span></li>
-          <li className="flex items-start gap-3"><Sparkles className="h-5 w-5 text-primary mt-0.5" /><span>Tudo num app simples e direto</span></li>
-        </ul>
-        <p className="text-xs opacity-50">© 2026 Spoint · powered by Centauro</p>
-      </aside>
-
-      <main className="desktop-stage">
+    <div className="min-h-screen flex flex-col bg-[oklch(0.97_0_0)]">
+      <DesktopHeader />
+      <main className="flex-1 w-full">
         <div className="app-shell">
           {children}
           {!hideNav && <BottomNav />}
