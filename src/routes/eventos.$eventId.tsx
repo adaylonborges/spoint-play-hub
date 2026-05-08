@@ -110,7 +110,7 @@ function EventPage() {
           </div>
         </div>
 
-        <div className="px-5 -mt-6 pb-28 space-y-4">
+        <div className="relative z-10 px-5 -mt-6 pb-28 space-y-4">
           {/* Action row */}
           <div className="grid grid-cols-2 gap-2">
             <button onClick={() => setShowInvite(true)} className="btn-primary text-sm">
