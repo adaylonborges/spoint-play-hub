@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RAFAEL_ID, SPORTS, SPORT_EMOJI } from "@/lib/constants";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
-import { ChevronLeft, MapPin, DollarSign, Calendar as CalIcon, Users, Gift } from "lucide-react";
+import { ChevronLeft, MapPin, DollarSign } from "lucide-react";
 
 export const Route = createFileRoute("/criar")({
   head: () => ({ meta: [{ title: "Criar evento — Spoint" }] }),
