@@ -11,6 +11,7 @@ import { InviteSheet } from "@/components/InviteSheet";
 import { generateIcs, downloadIcs } from "@/lib/ics";
 import { buildGoogleCalendarUrl, isMobileUA } from "@/lib/calendar";
 import { getSportImage } from "@/lib/sportImages";
+import centauroAd from "@/assets/ads/centauro-joga35.jpg";
 
 export const Route = createFileRoute("/eventos/$eventId")({
   head: () => ({ meta: [{ title: "Evento — Spoint" }] }),
@@ -323,6 +324,18 @@ function EventPage() {
               )}
             </div>
           </Link>
+
+          {/* Sponsored banner */}
+          <a
+            href="https://www.centauro.com.br"
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            className="block rounded-2xl overflow-hidden shadow-sm relative"
+            aria-label="Centauro — Cupom JOGA35"
+          >
+            <span className="absolute top-2 left-2 text-[10px] font-semibold uppercase tracking-wide bg-black/55 text-white px-2 py-0.5 rounded-full z-10">Publi</span>
+            <img src={centauroAd} alt="Centauro: 35% OFF com o cupom JOGA35" className="w-full h-auto block" />
+          </a>
         </div>
       </div>
 
