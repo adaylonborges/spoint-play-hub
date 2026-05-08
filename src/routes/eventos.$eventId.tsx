@@ -17,7 +17,7 @@ function EventPage() {
 
   const { data: event } = useQuery({
     queryKey: ["event", eventId],
-    queryFn: async () => (await supabase.from("events").select("*, challenges(*)").eq("id", eventId).single()).data,
+    queryFn: async () => (await supabase.from("events").select("*").eq("id", eventId).single()).data,
   });
   const { data: parts } = useQuery({
     queryKey: ["parts", eventId],
