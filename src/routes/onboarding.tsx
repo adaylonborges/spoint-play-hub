@@ -7,6 +7,7 @@ import { ChevronLeft, Check } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/onboarding")({
+  validateSearch: (s: Record<string, unknown>) => ({ redirect: (s.redirect as string) || "" }),
   head: () => ({ meta: [{ title: "Bem-vindo à Comunidade Spoint" }] }),
   component: Onboarding,
 });
