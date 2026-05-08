@@ -72,6 +72,31 @@ function EventPage() {
   const perPerson = event && confirmed.length ? (Number(event.total_cost) / confirmed.length).toFixed(2) : "0.00";
   const isOwner = event.owner_id === user.id;
 
+  const earliestDate = useMemo(() => {
+    const list = (dates ?? []).map((d: any) => new Date(d.proposed_date).getTime()).filter((n: number) => !isNaN(n));
+    return list.length ? new Date(Math.min(...list)) : null;
+  }, [dates]);
+  const votingDeadline = earliestDate ? new Date(earliestDate.getTime() - 48 * 3600 * 1000) : null;
+  const dateConfirmed = !!event.confirmed_date;
+  const votingOpen = !dateConfirmed && !!votingDeadline && Date.now() < votingDeadline.getTime() && (dates ?? []).length > 0;
+  const votingClosed = !dateConfirmed && !!votingDeadline && Date.now() >= votingDeadline.getTime() && (dates ?? []).length > 0;
+
+  // Owner auto-confirma data vencedora após o prazo
+  useEffect(() => {
+    if (!votingClosed || !isOwner || !dates || dates.length === 0) return;
+    const ranked = [...dates].map((d: any) => ({
+      id: d.id,
+      date: d.proposed_date,
+      votes: d.event_date_votes?.length ?? 0,
+      time: new Date(d.proposed_date).getTime(),
+    })).sort((a, b) => b.votes - a.votes || a.time - b.time);
+    const winner = ranked[0];
+    if (!winner) return;
+    supabase.from("events").update({ confirmed_date: winner.date }).eq("id", eventId).then(() => {
+      qc.invalidateQueries({ queryKey: ["event", eventId] });
+    });
+  }, [votingClosed, isOwner, dates, eventId, qc]);
+
   const setRsvp = async (status: string) => {
     if (me) {
       await supabase.from("event_participants").update({ rsvp_status: status }).eq("id", me.id);
