@@ -64,22 +64,16 @@ function EventPage() {
     queryFn: async () => (await supabase.from("event_messages").select("*, profiles(name)").eq("event_id", eventId).order("created_at", { ascending: false }).limit(2)).data ?? [],
   });
 
-  if (loading || !user) return <AppShell><div className="screen">Carregando...</div></AppShell>;
-  if (!event) return <AppShell><div className="screen">Carregando evento...</div></AppShell>;
-
-  const me = parts?.find((p: any) => p.user_id === user.id);
-  const confirmed = (parts ?? []).filter((p: any) => p.rsvp_status === "confirmed");
-  const perPerson = event && confirmed.length ? (Number(event.total_cost) / confirmed.length).toFixed(2) : "0.00";
-  const isOwner = event.owner_id === user.id;
-
   const earliestDate = useMemo(() => {
     const list = (dates ?? []).map((d: any) => new Date(d.proposed_date).getTime()).filter((n: number) => !isNaN(n));
     return list.length ? new Date(Math.min(...list)) : null;
   }, [dates]);
   const votingDeadline = earliestDate ? new Date(earliestDate.getTime() - 48 * 3600 * 1000) : null;
-  const dateConfirmed = !!event.confirmed_date;
-  const votingOpen = !dateConfirmed && !!votingDeadline && Date.now() < votingDeadline.getTime() && (dates ?? []).length > 0;
-  const votingClosed = !dateConfirmed && !!votingDeadline && Date.now() >= votingDeadline.getTime() && (dates ?? []).length > 0;
+  const dateConfirmed = !!event?.confirmed_date;
+  const hasDates = (dates ?? []).length > 0;
+  const votingOpen = !dateConfirmed && !!votingDeadline && Date.now() < votingDeadline.getTime() && hasDates;
+  const votingClosed = !dateConfirmed && !!votingDeadline && Date.now() >= votingDeadline.getTime() && hasDates;
+  const isOwner = !!event && !!user && event.owner_id === user.id;
 
   // Owner auto-confirma data vencedora após o prazo
   useEffect(() => {
@@ -96,6 +90,13 @@ function EventPage() {
       qc.invalidateQueries({ queryKey: ["event", eventId] });
     });
   }, [votingClosed, isOwner, dates, eventId, qc]);
+
+  if (loading || !user) return <AppShell><div className="screen">Carregando...</div></AppShell>;
+  if (!event) return <AppShell><div className="screen">Carregando evento...</div></AppShell>;
+
+  const me = parts?.find((p: any) => p.user_id === user.id);
+  const confirmed = (parts ?? []).filter((p: any) => p.rsvp_status === "confirmed");
+  const perPerson = event && confirmed.length ? (Number(event.total_cost) / confirmed.length).toFixed(2) : "0.00";
 
   const setRsvp = async (status: string) => {
     if (me) {
