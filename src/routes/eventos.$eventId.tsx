@@ -64,7 +64,7 @@ function EventPage() {
           <button onClick={() => nav({ to: "/" })} className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center mb-4">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <span className="chip-green mb-3">{SPORT_EMOJI[event.sport]} {event.sport}</span>
+          <span className="chip-yellow mb-3">{SPORT_EMOJI[event.sport]} {event.sport}</span>
           <h1 className="text-2xl font-bold mt-2">{event.title}</h1>
           <p className="text-sm opacity-80 flex items-center gap-1 mt-1"><MapPin className="h-4 w-4" />{event.location}</p>
           {event.confirmed_date && (
