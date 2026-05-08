@@ -57,7 +57,9 @@ function Onboarding() {
       sports, main_sport: main, level, frequency: freq, time_pref: time, social_profile: social,
     }).eq("id", user.id);
     setSaving(false);
-    nav({ to: "/" });
+    const target = redirect ? decodeURIComponent(redirect) : null;
+    if (target) window.location.href = target;
+    else nav({ to: "/" });
   };
 
   const canNext = [
