@@ -11,6 +11,7 @@ import { InviteSheet } from "@/components/InviteSheet";
 import { generateIcs, downloadIcs } from "@/lib/ics";
 import { buildGoogleCalendarUrl, isMobileUA } from "@/lib/calendar";
 import { getSportImage } from "@/lib/sportImages";
+import centauroAd from "@/assets/ads/centauro-joga35.jpg";
 
 export const Route = createFileRoute("/eventos/$eventId")({
   head: () => ({ meta: [{ title: "Evento — Spoint" }] }),
