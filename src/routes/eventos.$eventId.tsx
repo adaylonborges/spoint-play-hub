@@ -253,6 +253,23 @@ function EventPage() {
       {showInvite && event.invite_code && (
         <InviteSheet inviteCode={event.invite_code} eventTitle={event.title} onClose={() => setShowInvite(false)} />
       )}
+
+      {showCal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setShowCal(false)}>
+          <div className="w-full max-w-[430px] bg-card rounded-t-3xl p-6 pb-8" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-lg mb-1">Adicionar à agenda</h3>
+            <p className="muted mb-4">Escolha onde salvar este evento.</p>
+            <div className="space-y-2">
+              <button onClick={openGoogleCalendar} className="btn-primary w-full">
+                <CalendarPlus className="h-4 w-4" /> Google Calendar
+              </button>
+              <button onClick={downloadIcsFile} className="btn-ghost w-full">
+                <CalendarPlus className="h-4 w-4" /> Apple / Outlook (.ics)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
