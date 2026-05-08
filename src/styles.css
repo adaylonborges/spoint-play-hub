@@ -74,12 +74,16 @@
 }
 
 @layer components {
-  .desktop-frame { @apply min-h-screen w-full grid; grid-template-columns: 1fr; }
+  .desktop-frame { @apply min-h-screen w-full; }
   @media (min-width: 1024px) {
-    .desktop-frame { grid-template-columns: 1fr 480px; }
-    .desktop-stage { @apply flex items-center justify-center py-10; background: oklch(0.97 0 0); }
-    .app-shell { border-radius: 2.5rem; min-height: 860px !important; max-height: 92vh; overflow-y: auto; border: 1px solid var(--border); }
-    .app-shell nav.fixed, .app-shell .fixed { position: absolute !important; }
+    .app-shell {
+      max-width: 100% !important;
+      width: 100% !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+    .app-shell > .screen { max-width: 72rem; margin-inline: auto; padding-left: 2rem; padding-right: 2rem; padding-bottom: 4rem; }
+    .app-shell nav.fixed { display: none !important; }
   }
   .app-shell {
     @apply mx-auto min-h-screen w-full max-w-[430px] bg-background relative;
