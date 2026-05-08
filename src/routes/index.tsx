@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { Bell, Calendar, ChevronRight, Plus, MapPin } from "lucide-react";
+import { Bell, Calendar, ChevronRight, Plus, MapPin, Check, X, Mail } from "lucide-react";
 import { SpointLogo } from "@/components/SpointLogo";
 import { useRequireAuth } from "@/hooks/useAuth";
+import { getSportImage } from "@/lib/sportImages";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -17,8 +18,15 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
+type EvRow = {
+  id: string; title: string; sport: string; location: string | null;
+  confirmed_date: string | null; owner_id: string;
+};
+type PartRow = { event_id: string; rsvp_status: string; events: EvRow };
+
 function HomePage() {
   const { user, loading } = useRequireAuth();
+  const qc = useQueryClient();
 
   const { data: profile } = useQuery({
     enabled: !!user,
@@ -26,31 +34,47 @@ function HomePage() {
     queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).single()).data,
   });
 
-  const { data: events } = useQuery({
+  const { data: rows } = useQuery({
     enabled: !!user,
     queryKey: ["my-events-list", user?.id],
     queryFn: async () => {
-      // events I'm a participant of
-      const { data: parts } = await supabase
-        .from("event_participants")
-        .select("event_id")
-        .eq("user_id", user!.id);
-      const eventIds = (parts ?? []).map((p) => p.event_id);
-      if (!eventIds.length) return [];
       const { data } = await supabase
-        .from("events")
-        .select("*")
-        .in("id", eventIds)
-        .order("created_at", { ascending: false });
-      return data ?? [];
+        .from("event_participants")
+        .select("event_id, rsvp_status, events(id, title, sport, location, confirmed_date, owner_id)")
+        .eq("user_id", user!.id);
+      return (data ?? []).filter((r: any) => r.events) as unknown as PartRow[];
     },
   });
+
+  const respond = async (eventId: string, status: "confirmed" | "declined") => {
+    if (!user) return;
+    await supabase
+      .from("event_participants")
+      .update({ rsvp_status: status })
+      .eq("user_id", user.id)
+      .eq("event_id", eventId);
+    qc.invalidateQueries({ queryKey: ["my-events-list", user.id] });
+  };
 
   if (loading || !user) return <AppShell><div className="screen">Carregando...</div></AppShell>;
 
   const now = new Date();
-  const upcoming = (events ?? []).filter((e: any) => !e.confirmed_date || new Date(e.confirmed_date) >= now);
-  const past = (events ?? []).filter((e: any) => e.confirmed_date && new Date(e.confirmed_date) < now);
+  const all = rows ?? [];
+  const isPast = (e: EvRow) => e.confirmed_date && new Date(e.confirmed_date) < now;
+
+  // Convites pendentes: rsvp = invited e (sem data ou data futura) e não sou owner
+  const pending = all.filter(
+    (r) => r.rsvp_status === "invited" && r.events.owner_id !== user.id && !isPast(r.events),
+  );
+  // Próximos: confirmed/maybe ou owner, e não passou
+  const upcoming = all.filter(
+    (r) =>
+      !isPast(r.events) &&
+      (r.rsvp_status === "confirmed" || r.rsvp_status === "maybe" || r.events.owner_id === user.id) &&
+      !pending.find((p) => p.event_id === r.event_id),
+  );
+  // Histórico: já passou
+  const past = all.filter((r) => isPast(r.events));
 
   return (
     <AppShell>
@@ -80,12 +104,30 @@ function HomePage() {
           </Link>
         </div>
 
+        {/* Convites pendentes */}
+        {pending.length > 0 && (
+          <section className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="h2 flex items-center gap-2">
+                <Mail className="h-4 w-4 text-primary" /> Convites pendentes
+              </h2>
+              <span className="text-xs font-bold text-primary">{pending.length}</span>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-2">
+              {pending.map((r) => (
+                <PendingCard key={r.event_id} ev={r.events} onAccept={() => respond(r.event_id, "confirmed")} onDecline={() => respond(r.event_id, "declined")} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Próximos jogos */}
         <div className="flex items-center justify-between mb-3">
           <h2 className="h2">Próximos jogos</h2>
           <Calendar className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="grid gap-3 lg:grid-cols-2 mb-6">
-          {upcoming.map((e: any) => <EventCard key={e.id} ev={e} />)}
+          {upcoming.map((r) => <EventCard key={r.event_id} ev={r.events} />)}
           {upcoming.length === 0 && (
             <Link to="/criar" className="card text-center py-8 lg:col-span-2">
               <p className="text-3xl mb-2">🎾</p>
@@ -99,7 +141,7 @@ function HomePage() {
           <>
             <h2 className="h2 mb-3">Histórico</h2>
             <div className="grid gap-3 lg:grid-cols-2">
-              {past.slice(0, 6).map((e: any) => <EventCard key={e.id} ev={e} />)}
+              {past.slice(0, 6).map((r) => <EventCard key={r.event_id} ev={r.events} />)}
             </div>
           </>
         )}
@@ -108,7 +150,7 @@ function HomePage() {
   );
 }
 
-function EventCard({ ev }: { ev: any }) {
+function EventCard({ ev }: { ev: EvRow }) {
   return (
     <Link to="/eventos/$eventId" params={{ eventId: ev.id }} className="card flex items-center gap-3">
       <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
@@ -123,5 +165,29 @@ function EventCard({ ev }: { ev: any }) {
       </div>
       <ChevronRight className="h-5 w-5 text-muted-foreground" />
     </Link>
+  );
+}
+
+function PendingCard({ ev, onAccept, onDecline }: { ev: EvRow; onAccept: () => void; onDecline: () => void }) {
+  return (
+    <div className="card-dark overflow-hidden p-0">
+      <Link to="/eventos/$eventId" params={{ eventId: ev.id }} className="block relative h-24">
+        <img src={getSportImage(ev.sport)} alt={ev.sport} loading="lazy" className="absolute inset-0 w-full h-full object-cover opacity-70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+        <div className="absolute bottom-2 left-3 right-3 text-white">
+          <p className="text-[10px] font-bold opacity-80">{SPORT_EMOJI[ev.sport]} {ev.sport.toUpperCase()}</p>
+          <p className="font-bold text-base leading-tight truncate">{ev.title}</p>
+          {ev.location && <p className="text-[11px] opacity-80 truncate">{ev.location}</p>}
+        </div>
+      </Link>
+      <div className="grid grid-cols-2 gap-2 p-3">
+        <button onClick={onDecline} className="rounded-xl py-2 text-sm font-semibold bg-muted text-foreground flex items-center justify-center gap-1">
+          <X className="h-4 w-4" /> Recusar
+        </button>
+        <button onClick={onAccept} className="rounded-xl py-2 text-sm font-semibold bg-primary text-primary-foreground flex items-center justify-center gap-1">
+          <Check className="h-4 w-4" /> Vou
+        </button>
+      </div>
+    </div>
   );
 }

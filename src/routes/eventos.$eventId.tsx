@@ -9,6 +9,7 @@ import { useRequireAuth } from "@/hooks/useAuth";
 import { EventMap } from "@/components/EventMap";
 import { InviteSheet } from "@/components/InviteSheet";
 import { generateIcs, downloadIcs } from "@/lib/ics";
+import { getSportImage } from "@/lib/sportImages";
 
 export const Route = createFileRoute("/eventos/$eventId")({
   head: () => ({ meta: [{ title: "Evento — Spoint" }] }),
@@ -89,16 +90,24 @@ function EventPage() {
   return (
     <AppShell>
       <div className="relative -mx-0">
-        <div className="text-white p-6 pt-8 pb-10" style={{ background: "var(--gradient-hero)" }}>
-          <button onClick={() => nav({ to: "/" })} className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center mb-4">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <span className="chip-yellow mb-3">{SPORT_EMOJI[event.sport]} {event.sport}</span>
-          <h1 className="text-2xl font-bold mt-2">{event.title}</h1>
-          <p className="text-sm opacity-80 flex items-center gap-1 mt-1"><MapPin className="h-4 w-4" />{event.location}</p>
-          {event.confirmed_date && (
-            <p className="text-sm opacity-90 mt-1">{new Date(event.confirmed_date).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</p>
-          )}
+        <div className="relative text-white">
+          <img
+            src={getSportImage(event.sport)}
+            alt={event.sport}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.75) 100%)" }} />
+          <div className="relative p-6 pt-8 pb-10 lg:min-h-[280px]">
+            <button onClick={() => nav({ to: "/" })} className="h-10 w-10 rounded-full bg-white/15 backdrop-blur flex items-center justify-center mb-4">
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="chip-yellow mb-3">{SPORT_EMOJI[event.sport]} {event.sport}</span>
+            <h1 className="text-2xl lg:text-3xl font-bold mt-2">{event.title}</h1>
+            <p className="text-sm opacity-90 flex items-center gap-1 mt-1"><MapPin className="h-4 w-4" />{event.location}</p>
+            {event.confirmed_date && (
+              <p className="text-sm opacity-90 mt-1">{new Date(event.confirmed_date).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</p>
+            )}
+          </div>
         </div>
 
         <div className="px-5 -mt-6 pb-28 space-y-4">

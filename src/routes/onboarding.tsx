@@ -7,12 +7,14 @@ import { ChevronLeft, Check } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/onboarding")({
+  validateSearch: (s: Record<string, unknown>) => ({ redirect: (s.redirect as string) || "" }),
   head: () => ({ meta: [{ title: "Bem-vindo à Comunidade Spoint" }] }),
   component: Onboarding,
 });
 
 function Onboarding() {
   const { user, loading: authLoading } = useRequireAuth();
+  const { redirect } = Route.useSearch();
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
@@ -55,7 +57,9 @@ function Onboarding() {
       sports, main_sport: main, level, frequency: freq, time_pref: time, social_profile: social,
     }).eq("id", user.id);
     setSaving(false);
-    nav({ to: "/" });
+    const target = redirect ? decodeURIComponent(redirect) : null;
+    if (target) window.location.href = target;
+    else nav({ to: "/" });
   };
 
   const canNext = [

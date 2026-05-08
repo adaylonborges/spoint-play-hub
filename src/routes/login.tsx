@@ -31,9 +31,12 @@ function Login() {
 
   const goAfterAuth = async (userId: string) => {
     const target = redirect && redirect !== "/login" ? decodeURIComponent(redirect) : null;
-    // If profile is incomplete, route to onboarding first
+    // If profile is incomplete, route to onboarding first (preserving redirect)
     const { data: prof } = await supabase.from("profiles").select("main_sport").eq("id", userId).maybeSingle();
-    if (!prof?.main_sport) { nav({ to: "/onboarding" }); return; }
+    if (!prof?.main_sport) {
+      nav({ to: "/onboarding", search: target ? { redirect: encodeURIComponent(target) } as never : ({} as never) });
+      return;
+    }
     if (target) window.location.href = target;
     else nav({ to: "/" });
   };
@@ -60,7 +63,11 @@ function Login() {
 
   const google = async () => {
     setLoading(true); setError("");
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    // Preserve the invite redirect through the OAuth round-trip by sending it back to /login.
+    const redirectUri = redirect && redirect !== "/"
+      ? `${window.location.origin}/login?redirect=${redirect}`
+      : window.location.origin;
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: redirectUri });
     if (result.error) { setError("Erro com Google"); setLoading(false); return; }
     if (result.redirected) return;
     const { data } = await supabase.auth.getUser();

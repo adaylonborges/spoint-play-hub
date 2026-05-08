@@ -36,14 +36,14 @@ function InvitePage() {
   const join = async () => {
     if (!user || !event) return;
     setJoining(true);
+    // Insert as "invited" so it shows up as a pending invite the user can accept/decline.
     const { error } = await supabase.from("event_participants").upsert(
-      { event_id: event.id, user_id: user.id, rsvp_status: "confirmed" },
+      { event_id: event.id, user_id: user.id, rsvp_status: "invited" },
       { onConflict: "event_id,user_id" } as any,
     );
     setJoining(false);
     if (error) {
-      // fall back: try insert (older schemas without unique constraint)
-      await supabase.from("event_participants").insert({ event_id: event.id, user_id: user.id, rsvp_status: "confirmed" });
+      await supabase.from("event_participants").insert({ event_id: event.id, user_id: user.id, rsvp_status: "invited" });
     }
     nav({ to: "/eventos/$eventId", params: { eventId: event.id } });
   };
