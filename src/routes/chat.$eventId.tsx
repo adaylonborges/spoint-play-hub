@@ -5,7 +5,7 @@ import { RAFAEL_ID } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, Send } from "lucide-react";
 
-export const Route = createFileRoute("/eventos/$eventId/chat")({
+export const Route = createFileRoute("/chat/$eventId")({
   head: () => ({ meta: [{ title: "Chat do evento" }] }),
   component: ChatPage,
 });
