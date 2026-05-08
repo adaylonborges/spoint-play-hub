@@ -14,6 +14,7 @@ import { getSportImage } from "@/lib/sportImages";
 import centauroAd from "@/assets/ads/centauro-joga35.jpg";
 
 export const Route = createFileRoute("/eventos/$eventId")({
+  codeSplitGroupings: [],
   head: () => ({ meta: [{ title: "Evento — Spoint" }] }),
   component: EventPage,
 });
