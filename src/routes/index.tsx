@@ -40,34 +40,36 @@ function HomePage() {
   return (
     <AppShell>
       <div className="screen">
-        <header className="flex items-center justify-between mb-6">
+        <header className="flex items-center justify-between mb-6 lg:hidden">
           <img src={spointLogo} alt="Spoint" className="h-8 w-auto" />
           <button className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
             <Bell className="h-5 w-5" />
           </button>
         </header>
 
-        <div className="card-dark mb-5">
-          <p className="text-xs opacity-70">Olá,</p>
-          <h1 className="text-2xl font-bold">{profile?.name ?? "atleta"} 👋</h1>
-          <p className="text-sm opacity-70 mt-1">Pronto pra organizar o próximo jogo?</p>
-        </div>
+        <div className="grid gap-5 lg:grid-cols-2 lg:gap-6 mb-6">
+          <div className="card-dark">
+            <p className="text-xs opacity-70">Olá,</p>
+            <h1 className="text-2xl lg:text-3xl font-bold">{profile?.name ?? "atleta"} 👋</h1>
+            <p className="text-sm opacity-70 mt-1">Pronto pra organizar o próximo jogo?</p>
+          </div>
 
-        <Link to="/criar" className="card-yellow flex items-center justify-between mb-6 active:scale-[0.99] transition">
-          <div>
-            <p className="text-xs font-bold opacity-80">CRIE UM EVENTO</p>
-            <p className="text-lg font-bold leading-tight">Bora marcar um jogo<br/>com a galera?</p>
-          </div>
-          <div className="h-12 w-12 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center">
-            <Plus className="h-6 w-6" strokeWidth={3} />
-          </div>
-        </Link>
+          <Link to="/criar" className="card-yellow flex items-center justify-between active:scale-[0.99] transition">
+            <div>
+              <p className="text-xs font-bold opacity-80">CRIE UM EVENTO</p>
+              <p className="text-lg font-bold leading-tight">Bora marcar um jogo<br/>com a galera?</p>
+            </div>
+            <div className="h-12 w-12 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center">
+              <Plus className="h-6 w-6" strokeWidth={3} />
+            </div>
+          </Link>
+        </div>
 
         <div className="flex items-center justify-between mb-3">
           <h2 className="h2">Próximos jogos</h2>
           <Calendar className="h-4 w-4 text-muted-foreground" />
         </div>
-        <div className="space-y-3 mb-6">
+        <div className="grid gap-3 lg:grid-cols-2 mb-6">
           {events?.map((e: any) => (
             <Link key={e.id} to="/eventos/$eventId" params={{ eventId: e.id }} className="card flex items-center gap-3">
               <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
