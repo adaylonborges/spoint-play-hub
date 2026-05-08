@@ -111,34 +111,34 @@ function EventPage() {
 
   return (
     <AppShell>
-      <div className="relative -mx-0">
-        <div className="relative text-white">
+      <div className="relative">
+        <div className="relative text-white overflow-hidden">
           <img
             src={getSportImage(event.sport)}
             alt={event.sport}
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.75) 100%)" }} />
-          <div className="relative p-6 pt-8 pb-10 lg:min-h-[280px]">
-            <button onClick={() => nav({ to: "/" })} className="h-10 w-10 rounded-full bg-white/15 backdrop-blur flex items-center justify-center mb-4">
+          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.78) 100%)" }} />
+          <div className="relative px-4 sm:px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-8 min-h-[200px] lg:min-h-[280px]">
+            <button onClick={() => nav({ to: "/" })} className="h-10 w-10 rounded-full bg-white/15 backdrop-blur flex items-center justify-center mb-3">
               <ChevronLeft className="h-5 w-5" />
             </button>
             <span className="chip-yellow mb-3">{SPORT_EMOJI[event.sport]} {event.sport}</span>
-            <h1 className="text-2xl lg:text-3xl font-bold mt-2">{event.title}</h1>
-            <p className="text-sm opacity-90 flex items-center gap-1 mt-1"><MapPin className="h-4 w-4" />{event.location}</p>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mt-2 break-words">{event.title}</h1>
+            <p className="text-sm opacity-90 flex items-start gap-1 mt-1"><MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" /><span className="line-clamp-2">{event.location}</span></p>
             {event.confirmed_date && (
               <p className="text-sm opacity-90 mt-1">{new Date(event.confirmed_date).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</p>
             )}
           </div>
         </div>
 
-        <div className="relative z-10 px-5 -mt-6 pb-28 space-y-4">
+        <div className="relative z-10 px-4 sm:px-5 -mt-4 pb-28 space-y-4">
           {/* Action row */}
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setShowInvite(true)} className="btn-primary text-sm">
+            <button onClick={() => setShowInvite(true)} className="btn-primary text-sm px-3 py-3">
               <Share2 className="h-4 w-4" /> Convidar
             </button>
-            <button onClick={addToCalendar} className="btn-ghost text-sm">
+            <button onClick={handleCalendarClick} className="btn-ghost text-sm px-3 py-3">
               <CalendarPlus className="h-4 w-4" /> Agenda
             </button>
           </div>
