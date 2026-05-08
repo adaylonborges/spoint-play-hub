@@ -16,7 +16,7 @@ import { Route as DesafiosRouteImport } from './routes/desafios'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
-import { Route as EventosEventIdChatRouteImport } from './routes/eventos.$eventId.chat'
+import { Route as ChatEventIdRouteImport } from './routes/chat.$eventId'
 
 const RankingRoute = RankingRouteImport.update({
   id: '/ranking',
@@ -53,10 +53,10 @@ const EventosEventIdRoute = EventosEventIdRouteImport.update({
   path: '/eventos/$eventId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EventosEventIdChatRoute = EventosEventIdChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
-  getParentRoute: () => EventosEventIdRoute,
+const ChatEventIdRoute = ChatEventIdRouteImport.update({
+  id: '/chat/$eventId',
+  path: '/chat/$eventId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -66,8 +66,8 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
   '/ranking': typeof RankingRoute
-  '/eventos/$eventId': typeof EventosEventIdRouteWithChildren
-  '/eventos/$eventId/chat': typeof EventosEventIdChatRoute
+  '/chat/$eventId': typeof ChatEventIdRoute
+  '/eventos/$eventId': typeof EventosEventIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -76,8 +76,8 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
   '/ranking': typeof RankingRoute
-  '/eventos/$eventId': typeof EventosEventIdRouteWithChildren
-  '/eventos/$eventId/chat': typeof EventosEventIdChatRoute
+  '/chat/$eventId': typeof ChatEventIdRoute
+  '/eventos/$eventId': typeof EventosEventIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -87,8 +87,8 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
   '/ranking': typeof RankingRoute
-  '/eventos/$eventId': typeof EventosEventIdRouteWithChildren
-  '/eventos/$eventId/chat': typeof EventosEventIdChatRoute
+  '/chat/$eventId': typeof ChatEventIdRoute
+  '/eventos/$eventId': typeof EventosEventIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -99,8 +99,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/perfil'
     | '/ranking'
+    | '/chat/$eventId'
     | '/eventos/$eventId'
-    | '/eventos/$eventId/chat'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -109,8 +109,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/perfil'
     | '/ranking'
+    | '/chat/$eventId'
     | '/eventos/$eventId'
-    | '/eventos/$eventId/chat'
   id:
     | '__root__'
     | '/'
@@ -119,8 +119,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/perfil'
     | '/ranking'
+    | '/chat/$eventId'
     | '/eventos/$eventId'
-    | '/eventos/$eventId/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -130,7 +130,8 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   PerfilRoute: typeof PerfilRoute
   RankingRoute: typeof RankingRoute
-  EventosEventIdRoute: typeof EventosEventIdRouteWithChildren
+  ChatEventIdRoute: typeof ChatEventIdRoute
+  EventosEventIdRoute: typeof EventosEventIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -184,27 +185,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventosEventIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/eventos/$eventId/chat': {
-      id: '/eventos/$eventId/chat'
-      path: '/chat'
-      fullPath: '/eventos/$eventId/chat'
-      preLoaderRoute: typeof EventosEventIdChatRouteImport
-      parentRoute: typeof EventosEventIdRoute
+    '/chat/$eventId': {
+      id: '/chat/$eventId'
+      path: '/chat/$eventId'
+      fullPath: '/chat/$eventId'
+      preLoaderRoute: typeof ChatEventIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface EventosEventIdRouteChildren {
-  EventosEventIdChatRoute: typeof EventosEventIdChatRoute
-}
-
-const EventosEventIdRouteChildren: EventosEventIdRouteChildren = {
-  EventosEventIdChatRoute: EventosEventIdChatRoute,
-}
-
-const EventosEventIdRouteWithChildren = EventosEventIdRoute._addFileChildren(
-  EventosEventIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -213,8 +202,19 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   PerfilRoute: PerfilRoute,
   RankingRoute: RankingRoute,
-  EventosEventIdRoute: EventosEventIdRouteWithChildren,
+  ChatEventIdRoute: ChatEventIdRoute,
+  EventosEventIdRoute: EventosEventIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

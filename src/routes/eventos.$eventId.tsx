@@ -140,7 +140,7 @@ function EventPage() {
           )}
 
           {/* Chat preview */}
-          <Link to="/eventos/$eventId/chat" params={{ eventId }} className="card flex items-start gap-3">
+          <Link to="/chat/$eventId" params={{ eventId }} className="card flex items-start gap-3">
             <MessageCircle className="h-5 w-5 text-primary mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm mb-1">Chat do evento</p>

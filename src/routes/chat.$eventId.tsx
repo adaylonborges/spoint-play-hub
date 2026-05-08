@@ -53,6 +53,7 @@ function ChatPage() {
           <button onClick={() => nav({ to: "/eventos/$eventId", params: { eventId } })} className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
             <ChevronLeft className="h-5 w-5" />
           </button>
+          {null}
           <div>
             <p className="font-bold">Chat do evento</p>
             <p className="text-xs text-muted-foreground">Em tempo real</p>
