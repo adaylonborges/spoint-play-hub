@@ -3,13 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RAFAEL_ID, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { Bell, Calendar, Coins, Flame, Trophy, ChevronRight } from "lucide-react";
+import { Bell, Calendar, ChevronRight, Plus, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Comunidade Spoint — Jogue com seus amigos" },
-      { name: "description", content: "Organize jogos, divida custos e ganhe recompensas Centauro com a Comunidade Spoint." },
+      { title: "Spoint — A comunidade dos seus jogos" },
+      { name: "description", content: "Organize jogos, vote nas datas e divida o custo com seus amigos." },
     ],
   }),
   component: HomePage,
@@ -31,81 +31,37 @@ function HomePage() {
         .from("events")
         .select("*, event_participants(count)")
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(8);
       return data ?? [];
     },
   });
-
-  const { data: featured } = useQuery({
-    queryKey: ["featured-challenge"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("user_challenges")
-        .select("progress, challenges(*)")
-        .eq("user_id", RAFAEL_ID)
-        .order("progress", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-  });
-
-  const ch = featured?.challenges as any;
-  const pct = ch ? Math.round(((featured?.progress ?? 0) / ch.goal) * 100) : 0;
 
   return (
     <AppShell>
       <div className="screen">
         <header className="flex items-center justify-between mb-6">
-          <div>
-            <p className="muted">Bom dia,</p>
-            <h1 className="h1">{profile?.name ?? "..."} 👋</h1>
-          </div>
+          <span className="spoint-wordmark text-3xl">spoint</span>
           <button className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
             <Bell className="h-5 w-5" />
           </button>
         </header>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="card text-center">
-            <Coins className="h-5 w-5 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold">{profile?.spoints ?? 0}</p>
-            <p className="text-[10px] text-muted-foreground">Spoints</p>
-          </div>
-          <div className="card text-center">
-            <Flame className="h-5 w-5 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold">{profile?.xp ?? 0}</p>
-            <p className="text-[10px] text-muted-foreground">XP</p>
-          </div>
-          <div className="card text-center">
-            <Trophy className="h-5 w-5 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold">3</p>
-            <p className="text-[10px] text-muted-foreground">Conquistas</p>
-          </div>
+        <div className="card-dark mb-5">
+          <p className="text-xs opacity-70">Olá,</p>
+          <h1 className="text-2xl font-bold">{profile?.name ?? "atleta"} 👋</h1>
+          <p className="text-sm opacity-70 mt-1">Pronto pra organizar o próximo jogo?</p>
         </div>
 
-        {/* Featured challenge */}
-        {ch && (
-          <Link to="/desafios" className="block mb-6">
-            <div className="rounded-2xl p-5 text-white relative overflow-hidden" style={{ background: "var(--gradient-hero)" }}>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="chip-green">🔥 Desafio em destaque</span>
-              </div>
-              <h3 className="text-xl font-bold">{ch.title}</h3>
-              <p className="text-sm opacity-80 mt-1 mb-4">{ch.description}</p>
-              <div className="h-2 rounded-full bg-white/20 overflow-hidden">
-                <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
-              </div>
-              <div className="flex justify-between items-center mt-2 text-xs">
-                <span>{featured?.progress}/{ch.goal} concluídos</span>
-                <span className="font-semibold">🎁 {ch.reward_text}</span>
-              </div>
-            </div>
-          </Link>
-        )}
+        <Link to="/criar" className="card-yellow flex items-center justify-between mb-6 active:scale-[0.99] transition">
+          <div>
+            <p className="text-xs font-bold opacity-80">CRIE UM EVENTO</p>
+            <p className="text-lg font-bold leading-tight">Bora marcar um jogo<br/>com a galera?</p>
+          </div>
+          <div className="h-12 w-12 rounded-2xl bg-secondary text-secondary-foreground flex items-center justify-center">
+            <Plus className="h-6 w-6" strokeWidth={3} />
+          </div>
+        </Link>
 
-        {/* Próximos jogos */}
         <div className="flex items-center justify-between mb-3">
           <h2 className="h2">Próximos jogos</h2>
           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -118,7 +74,8 @@ function HomePage() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate">{e.title}</p>
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
                   {e.location} {e.confirmed_date ? "· " + new Date(e.confirmed_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "· Aguardando data"}
                 </p>
               </div>
@@ -126,11 +83,9 @@ function HomePage() {
             </Link>
           ))}
           {events?.length === 0 && (
-            <p className="muted text-center py-6">Nenhum jogo. Que tal criar um? 🎾</p>
+            <p className="muted text-center py-6">Nenhum jogo ainda. Crie o primeiro 🎾</p>
           )}
         </div>
-
-        <Link to="/criar" className="btn-primary w-full">+ Criar novo evento</Link>
       </div>
     </AppShell>
   );

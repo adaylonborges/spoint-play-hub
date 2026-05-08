@@ -36,43 +36,40 @@
 }
 
 :root {
-  --radius: 0.875rem;
+  --radius: 1rem;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.16 0 0);
-  --ink: oklch(0.16 0 0);
-  --surface: oklch(0.975 0 0);
+  --foreground: oklch(0.14 0 0);
+  --ink: oklch(0.14 0 0);
+  --surface: oklch(0.97 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.16 0 0);
+  --card-foreground: oklch(0.14 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.16 0 0);
-  /* Spoint green */
-  --primary: oklch(0.68 0.19 145);
-  --primary-foreground: oklch(0.16 0 0);
-  --success: oklch(0.68 0.19 145);
-  --success-foreground: oklch(0.16 0 0);
-  --secondary: oklch(0.16 0 0);
+  --popover-foreground: oklch(0.14 0 0);
+  /* Spoint Yellow */
+  --primary: oklch(0.92 0.19 102);
+  --primary-foreground: oklch(0.14 0 0);
+  --success: oklch(0.72 0.18 145);
+  --success-foreground: oklch(1 0 0);
+  /* Spoint Black */
+  --secondary: oklch(0.14 0 0);
   --secondary-foreground: oklch(1 0 0);
   --muted: oklch(0.96 0 0);
   --muted-foreground: oklch(0.45 0 0);
-  --accent: oklch(0.93 0.07 145);
-  --accent-foreground: oklch(0.16 0 0);
+  --accent: oklch(0.96 0.06 102);
+  --accent-foreground: oklch(0.14 0 0);
   --destructive: oklch(0.6 0.2 25);
   --destructive-foreground: oklch(1 0 0);
   --border: oklch(0.91 0 0);
   --input: oklch(0.91 0 0);
-  --ring: oklch(0.68 0.19 145);
-  --gradient-hero: linear-gradient(135deg, oklch(0.16 0 0), oklch(0.28 0.05 145));
-  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.04), 0 4px 16px oklch(0 0 0 / 0.04);
-}
-
-.dark {
-  --background: oklch(0.12 0 0);
-  --foreground: oklch(0.98 0 0);
+  --ring: oklch(0.92 0.19 102);
+  --gradient-hero: linear-gradient(160deg, oklch(0.14 0 0) 0%, oklch(0.22 0.02 102) 100%);
+  --shadow-card: 0 1px 2px oklch(0 0 0 / 0.04), 0 6px 20px oklch(0 0 0 / 0.05);
+  --shadow-yellow: 0 8px 24px oklch(0.92 0.19 102 / 0.35);
 }
 
 @layer base {
   * { border-color: var(--color-border); }
-  html, body { background: oklch(0.96 0 0); color: var(--color-foreground); min-height: 100vh; }
+  html, body { background: oklch(0.97 0 0); color: var(--color-foreground); min-height: 100vh; }
   body { font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
 }
 
@@ -80,23 +77,37 @@
   .desktop-frame { @apply min-h-screen w-full grid; grid-template-columns: 1fr; }
   @media (min-width: 1024px) {
     .desktop-frame { grid-template-columns: 1fr 480px; }
-    .desktop-stage { @apply flex items-center justify-center py-10; background: oklch(0.96 0 0); }
-    .app-shell { border-radius: 2.25rem; min-height: 860px !important; max-height: 92vh; overflow-y: auto; border: 1px solid var(--border); }
+    .desktop-stage { @apply flex items-center justify-center py-10; background: oklch(0.97 0 0); }
+    .app-shell { border-radius: 2.5rem; min-height: 860px !important; max-height: 92vh; overflow-y: auto; border: 1px solid var(--border); }
     .app-shell nav.fixed, .app-shell .fixed { position: absolute !important; }
   }
   .app-shell {
     @apply mx-auto min-h-screen w-full max-w-[430px] bg-background relative;
-    box-shadow: 0 0 40px oklch(0 0 0 / 0.06);
+    box-shadow: 0 0 60px oklch(0 0 0 / 0.08);
   }
   .screen { @apply px-5 pt-6 pb-28; }
+
+  /* Spoint wordmark */
+  .spoint-wordmark { font-family: "SF Pro Display", system-ui, sans-serif; font-weight: 800; letter-spacing: -0.04em; font-style: italic; }
+
+  /* Cards */
   .card { @apply rounded-2xl bg-card p-4 border border-border; box-shadow: var(--shadow-card); }
-  .chip { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium bg-muted text-foreground; }
-  .chip-green { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-primary text-primary-foreground; }
-  .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground font-semibold px-5 py-3 active:scale-[0.98] transition; }
-  .btn-dark { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-secondary text-secondary-foreground font-semibold px-5 py-3 active:scale-[0.98] transition; }
-  .btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card font-semibold px-5 py-3; }
-  .input { @apply w-full rounded-xl border border-border bg-card px-4 py-3 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/20; }
-  .label { @apply block text-sm font-medium text-foreground mb-1.5; }
+  .card-dark { @apply rounded-2xl p-4 text-secondary-foreground; background: var(--secondary); }
+  .card-yellow { @apply rounded-2xl p-4 text-primary-foreground; background: var(--primary); }
+
+  /* Chips */
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold bg-muted text-foreground; }
+  .chip-yellow { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold bg-primary text-primary-foreground; }
+  .chip-dark { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold bg-secondary text-secondary-foreground; }
+
+  /* Buttons */
+  .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground font-bold px-5 py-3.5 active:scale-[0.98] transition; box-shadow: var(--shadow-yellow); }
+  .btn-dark { @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-secondary text-secondary-foreground font-bold px-5 py-3.5 active:scale-[0.98] transition; }
+  .btn-ghost { @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-card font-semibold px-5 py-3.5; }
+
+  /* Forms */
+  .input { @apply w-full rounded-2xl border border-border bg-card px-4 py-3.5 text-base outline-none focus:border-primary focus:ring-2 focus:ring-primary/30; }
+  .label { @apply block text-sm font-semibold text-foreground mb-1.5; }
   .h1 { @apply text-2xl font-bold tracking-tight; }
   .h2 { @apply text-lg font-bold tracking-tight; }
   .muted { @apply text-sm text-muted-foreground; }

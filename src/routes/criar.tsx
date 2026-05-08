@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { RAFAEL_ID, SPORTS, SPORT_EMOJI } from "@/lib/constants";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/AppShell";
-import { ChevronLeft, MapPin, DollarSign, Calendar as CalIcon, Users, Gift } from "lucide-react";
+import { ChevronLeft, MapPin, DollarSign } from "lucide-react";
 
 export const Route = createFileRoute("/criar")({
   head: () => ({ meta: [{ title: "Criar evento — Spoint" }] }),
@@ -30,13 +30,6 @@ function Criar() {
     },
   });
 
-  const { data: linkedChallenge } = useQuery({
-    queryKey: ["challenge-for-sport", sport],
-    queryFn: async () => {
-      const { data } = await supabase.from("challenges").select("*").eq("sport", sport).eq("active", true).maybeSingle();
-      return data;
-    },
-  });
 
   const perPerson = friends.length > 0 && cost ? (Number(cost) / (friends.length + 1)).toFixed(2) : "0.00";
 
@@ -45,7 +38,6 @@ function Criar() {
     const { data: ev } = await supabase.from("events").insert({
       owner_id: RAFAEL_ID, sport, title: title || `${sport} entre amigos`, location,
       total_cost: Number(cost) || 0,
-      challenge_id: linkedChallenge?.id ?? null,
     }).select().single();
     if (ev) {
       const validDates = dates.filter(Boolean);
@@ -108,15 +100,6 @@ function Criar() {
             </div>
             <label className="label">Nome do evento</label>
             <input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="BT no fim de tarde" />
-            {linkedChallenge && (
-              <div className="mt-4 rounded-2xl border border-primary/40 bg-accent p-4 flex gap-3">
-                <Gift className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-sm">Conta para o desafio: {linkedChallenge.title}</p>
-                  <p className="text-xs text-muted-foreground">Recompensa: {linkedChallenge.reward_text}</p>
-                </div>
-              </div>
-            )}
           </>
         )}
 

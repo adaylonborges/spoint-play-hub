@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RAFAEL_ID, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { ChevronLeft, MapPin, Gift, Check, MessageCircle } from "lucide-react";
+import { ChevronLeft, MapPin, Check, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/eventos/$eventId")({
   head: () => ({ meta: [{ title: "Evento — Spoint" }] }),
@@ -17,7 +17,7 @@ function EventPage() {
 
   const { data: event } = useQuery({
     queryKey: ["event", eventId],
-    queryFn: async () => (await supabase.from("events").select("*, challenges(*)").eq("id", eventId).single()).data,
+    queryFn: async () => (await supabase.from("events").select("*").eq("id", eventId).single()).data,
   });
   const { data: parts } = useQuery({
     queryKey: ["parts", eventId],
@@ -54,7 +54,7 @@ function EventPage() {
   };
 
   if (!event) return <AppShell><div className="screen">Carregando...</div></AppShell>;
-  const ch = (event as any).challenges;
+  
 
   return (
     <AppShell>
@@ -64,7 +64,7 @@ function EventPage() {
           <button onClick={() => nav({ to: "/" })} className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center mb-4">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <span className="chip-green mb-3">{SPORT_EMOJI[event.sport]} {event.sport}</span>
+          <span className="chip-yellow mb-3">{SPORT_EMOJI[event.sport]} {event.sport}</span>
           <h1 className="text-2xl font-bold mt-2">{event.title}</h1>
           <p className="text-sm opacity-80 flex items-center gap-1 mt-1"><MapPin className="h-4 w-4" />{event.location}</p>
           {event.confirmed_date && (
@@ -73,16 +73,6 @@ function EventPage() {
         </div>
 
         <div className="px-5 -mt-6 pb-28">
-          {/* Challenge banner */}
-          {ch && (
-            <div className="card mb-4 border-primary/40 bg-accent flex items-start gap-3">
-              <Gift className="h-5 w-5 text-primary mt-0.5" />
-              <div>
-                <p className="font-bold text-sm">{ch.title}</p>
-                <p className="text-xs text-muted-foreground">Este evento conta para o desafio · {ch.reward_text}</p>
-              </div>
-            </div>
-          )}
 
           {/* RSVP */}
           <div className="card mb-4">
