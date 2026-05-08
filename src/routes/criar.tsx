@@ -49,13 +49,35 @@ function Criar() {
     }).select().single();
     if (ev) {
       const validDates = dates.filter(Boolean);
+      let insertedDates: { id: string }[] = [];
       if (validDates.length) {
-        await supabase.from("event_dates").insert(validDates.map(d => ({ event_id: ev.id, proposed_date: new Date(d).toISOString() })));
+        const { data: dRows } = await supabase.from("event_dates")
+          .insert(validDates.map(d => ({ event_id: ev.id, proposed_date: new Date(d).toISOString() })))
+          .select("id");
+        insertedDates = dRows ?? [];
       }
-      await supabase.from("event_participants").insert([
-        { event_id: ev.id, user_id: RAFAEL_ID, rsvp_status: "confirmed" },
-        ...friends.map(f => ({ event_id: ev.id, user_id: f, rsvp_status: "invited" as const })),
-      ]);
+      // All friends become participants. Selected = confirmed, others = invited (so we have voting visibility)
+      const allFriendIds = (friendsList ?? []).map((f: any) => f.profiles.id);
+      const participants = [
+        { event_id: ev.id, user_id: RAFAEL_ID, rsvp_status: "confirmed" as const },
+        ...allFriendIds.map((id: string) => ({
+          event_id: ev.id,
+          user_id: id,
+          rsvp_status: (friends.includes(id) ? "confirmed" : "invited") as "confirmed" | "invited",
+        })),
+      ];
+      await supabase.from("event_participants").insert(participants);
+
+      // Seed simulated votes so the date-voting UI has signal immediately
+      if (insertedDates.length) {
+        const voters = [RAFAEL_ID, ...allFriendIds];
+        const votes = voters.map((uid, i) => ({
+          event_date_id: insertedDates[i % insertedDates.length].id,
+          user_id: uid,
+        }));
+        await supabase.from("event_date_votes").insert(votes);
+      }
+
       nav({ to: "/eventos/$eventId", params: { eventId: ev.id } });
     }
     setSaving(false);

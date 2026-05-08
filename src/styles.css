@@ -72,11 +72,18 @@
 
 @layer base {
   * { border-color: var(--color-border); }
-  html, body { background: oklch(0.96 0 0); color: var(--color-foreground); }
+  html, body { background: oklch(0.96 0 0); color: var(--color-foreground); min-height: 100vh; }
   body { font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
 }
 
 @layer components {
+  .desktop-frame { @apply min-h-screen w-full grid; grid-template-columns: 1fr; }
+  @media (min-width: 1024px) {
+    .desktop-frame { grid-template-columns: 1fr 480px; }
+    .desktop-stage { @apply flex items-center justify-center py-10; background: oklch(0.96 0 0); }
+    .app-shell { border-radius: 2.25rem; min-height: 860px !important; max-height: 92vh; overflow-y: auto; border: 1px solid var(--border); }
+    .app-shell nav.fixed, .app-shell .fixed { position: absolute !important; }
+  }
   .app-shell {
     @apply mx-auto min-h-screen w-full max-w-[430px] bg-background relative;
     box-shadow: 0 0 40px oklch(0 0 0 / 0.06);
