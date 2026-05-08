@@ -1,17 +1,19 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { AppShell } from "@/components/AppShell";
 import { SpointLogo } from "@/components/SpointLogo";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({ redirect: (s.redirect as string) || "/" }),
   head: () => ({ meta: [{ title: "Entrar — Spoint" }] }),
   component: Login,
 });
 
 function Login() {
   const nav = useNavigate();
+  const { redirect } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,20 +21,37 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // If already authenticated, redirect away
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (data.session?.user) await goAfterAuth(data.session.user.id);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const goAfterAuth = async (userId: string) => {
+    const target = redirect && redirect !== "/login" ? decodeURIComponent(redirect) : null;
+    // If profile is incomplete, route to onboarding first
+    const { data: prof } = await supabase.from("profiles").select("main_sport").eq("id", userId).maybeSingle();
+    if (!prof?.main_sport) { nav({ to: "/onboarding" }); return; }
+    if (target) window.location.href = target;
+    else nav({ to: "/" });
+  };
+
   const submit = async () => {
     setLoading(true); setError("");
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: window.location.origin, data: { name } },
         });
         if (error) throw error;
-        nav({ to: "/onboarding" });
+        if (data.user) await goAfterAuth(data.user.id);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        nav({ to: "/" });
+        if (data.user) await goAfterAuth(data.user.id);
       }
     } catch (e: any) {
       setError(e.message ?? "Erro ao autenticar");
@@ -44,7 +63,8 @@ function Login() {
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
     if (result.error) { setError("Erro com Google"); setLoading(false); return; }
     if (result.redirected) return;
-    nav({ to: "/" });
+    const { data } = await supabase.auth.getUser();
+    if (data.user) await goAfterAuth(data.user.id);
   };
 
   return (
@@ -97,8 +117,6 @@ function Login() {
           {mode === "signin" ? "Não tem conta? " : "Já tem conta? "}
           <span className="font-bold text-foreground underline">{mode === "signin" ? "Cadastre-se" : "Entrar"}</span>
         </button>
-
-        <Link to="/" className="text-xs text-center mt-3 text-muted-foreground">Continuar sem entrar</Link>
       </div>
     </AppShell>
   );

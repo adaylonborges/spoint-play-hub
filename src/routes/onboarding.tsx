@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { RAFAEL_ID, SPORTS, LEVELS, FREQUENCIES, TIME_PREFS, SOCIAL_PROFILES, SPORT_EMOJI } from "@/lib/constants";
+import { SPORTS, LEVELS, FREQUENCIES, TIME_PREFS, SOCIAL_PROFILES, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, Check } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Bem-vindo à Comunidade Spoint" }] }),
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/onboarding")({
 });
 
 function Onboarding() {
+  const { user, loading: authLoading } = useRequireAuth();
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
@@ -22,16 +24,37 @@ function Onboarding() {
   const [freq, setFreq] = useState("");
   const [time, setTime] = useState("");
   const [social, setSocial] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Pre-fill name from existing profile (created by trigger)
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("name, age, city, sports, main_sport, level, frequency, time_pref, social_profile").eq("id", user.id).maybeSingle().then(({ data }) => {
+      if (!data) return;
+      if (data.name) setName(data.name);
+      if (data.age) setAge(String(data.age));
+      if (data.city) setCity(data.city);
+      if (data.sports) setSports(data.sports);
+      if (data.main_sport) setMain(data.main_sport);
+      if (data.level) setLevel(data.level);
+      if (data.frequency) setFreq(data.frequency);
+      if (data.time_pref) setTime(data.time_pref);
+      if (data.social_profile) setSocial(data.social_profile);
+    });
+  }, [user]);
 
   const toggleSport = (s: string) =>
     setSports((p) => (p.includes(s) ? p.filter((x) => x !== s) : [...p, s]));
 
   const next = async () => {
     if (step < 3) return setStep(step + 1);
+    if (!user) return;
+    setSaving(true);
     await supabase.from("profiles").update({
       name, age: Number(age) || null, city,
       sports, main_sport: main, level, frequency: freq, time_pref: time, social_profile: social,
-    }).eq("id", RAFAEL_ID);
+    }).eq("id", user.id);
+    setSaving(false);
     nav({ to: "/" });
   };
 
@@ -41,6 +64,8 @@ function Onboarding() {
     main,
     level && freq && time && social,
   ][step];
+
+  if (authLoading || !user) return <AppShell hideNav><div className="screen">Carregando...</div></AppShell>;
 
   return (
     <AppShell hideNav>
@@ -91,7 +116,7 @@ function Onboarding() {
         {step === 2 && (
           <div>
             <h1 className="h1 mb-1">Seu esporte principal?</h1>
-            <p className="muted mb-6">Vamos personalizar seus desafios</p>
+            <p className="muted mb-6">Vamos personalizar suas recomendações</p>
             <div className="space-y-2">
               {sports.map((s) => (
                 <button key={s} onClick={()=>setMain(s)} className={`w-full flex items-center gap-3 rounded-xl p-4 border transition ${main===s ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>
@@ -118,8 +143,8 @@ function Onboarding() {
         )}
 
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-5 bg-background border-t border-border">
-          <button disabled={!canNext} onClick={next} className="btn-primary w-full disabled:opacity-40">
-            {step === 3 ? "Começar a jogar" : "Continuar"}
+          <button disabled={!canNext || saving} onClick={next} className="btn-primary w-full disabled:opacity-40">
+            {step === 3 ? (saving ? "Salvando..." : "Começar a jogar") : "Continuar"}
           </button>
         </div>
       </div>

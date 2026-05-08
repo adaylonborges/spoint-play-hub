@@ -1,9 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { RAFAEL_ID, SPORT_EMOJI } from "@/lib/constants";
+import { SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { ChevronLeft, MapPin, Check, MessageCircle } from "lucide-react";
+import { ChevronLeft, MapPin, Check, MessageCircle, Share2, CalendarPlus, ExternalLink } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useAuth";
+import { EventMap } from "@/components/EventMap";
+import { InviteSheet } from "@/components/InviteSheet";
+import { generateIcs, downloadIcs } from "@/lib/ics";
 
 export const Route = createFileRoute("/eventos/$eventId")({
   head: () => ({ meta: [{ title: "Evento — Spoint" }] }),
@@ -12,54 +17,78 @@ export const Route = createFileRoute("/eventos/$eventId")({
 
 function EventPage() {
   const { eventId } = Route.useParams();
+  const { user, loading } = useRequireAuth();
   const nav = useNavigate();
   const qc = useQueryClient();
+  const [showInvite, setShowInvite] = useState(false);
 
   const { data: event } = useQuery({
+    enabled: !!user,
     queryKey: ["event", eventId],
     queryFn: async () => (await supabase.from("events").select("*").eq("id", eventId).single()).data,
   });
   const { data: parts } = useQuery({
+    enabled: !!user,
     queryKey: ["parts", eventId],
     queryFn: async () => (await supabase.from("event_participants").select("*, profiles(name)").eq("event_id", eventId)).data ?? [],
   });
   const { data: dates } = useQuery({
+    enabled: !!user,
     queryKey: ["dates", eventId],
     queryFn: async () => (await supabase.from("event_dates").select("*, event_date_votes(user_id)").eq("event_id", eventId)).data ?? [],
   });
   const { data: messages } = useQuery({
+    enabled: !!user,
     queryKey: ["msgs-preview", eventId],
     queryFn: async () => (await supabase.from("event_messages").select("*, profiles(name)").eq("event_id", eventId).order("created_at", { ascending: false }).limit(2)).data ?? [],
   });
 
-  const me = parts?.find((p: any) => p.user_id === RAFAEL_ID);
+  if (loading || !user) return <AppShell><div className="screen">Carregando...</div></AppShell>;
+  if (!event) return <AppShell><div className="screen">Carregando evento...</div></AppShell>;
+
+  const me = parts?.find((p: any) => p.user_id === user.id);
   const confirmed = (parts ?? []).filter((p: any) => p.rsvp_status === "confirmed");
   const perPerson = event && confirmed.length ? (Number(event.total_cost) / confirmed.length).toFixed(2) : "0.00";
+  const isOwner = event.owner_id === user.id;
 
   const setRsvp = async (status: string) => {
-    if (!me) return;
-    await supabase.from("event_participants").update({ rsvp_status: status }).eq("id", me.id);
+    if (me) {
+      await supabase.from("event_participants").update({ rsvp_status: status }).eq("id", me.id);
+    } else {
+      await supabase.from("event_participants").insert({ event_id: eventId, user_id: user.id, rsvp_status: status });
+    }
     qc.invalidateQueries({ queryKey: ["parts", eventId] });
   };
 
-  const togglePaid = async (id: string, paid: boolean) => {
+  const togglePaid = async (id: string, paid: boolean, userId: string) => {
+    if (userId !== user.id && !isOwner) return;
     await supabase.from("event_participants").update({ paid: !paid }).eq("id", id);
     qc.invalidateQueries({ queryKey: ["parts", eventId] });
   };
 
   const vote = async (dateId: string) => {
-    await supabase.from("event_date_votes").delete().eq("user_id", RAFAEL_ID).in("event_date_id", (dates ?? []).map((d: any) => d.id));
-    await supabase.from("event_date_votes").insert({ event_date_id: dateId, user_id: RAFAEL_ID });
+    await supabase.from("event_date_votes").delete().eq("user_id", user.id).in("event_date_id", (dates ?? []).map((d: any) => d.id));
+    await supabase.from("event_date_votes").insert({ event_date_id: dateId, user_id: user.id });
     qc.invalidateQueries({ queryKey: ["dates", eventId] });
   };
 
-  if (!event) return <AppShell><div className="screen">Carregando...</div></AppShell>;
-  
+  const addToCalendar = () => {
+    const startStr = event.confirmed_date ?? (dates ?? []).find((d: any) => d.proposed_date)?.proposed_date;
+    if (!startStr) return;
+    const ics = generateIcs({
+      uid: event.id,
+      title: event.title,
+      start: new Date(startStr),
+      location: event.address ?? event.location ?? "",
+      description: `Evento Spoint. Veja detalhes: ${window.location.origin}/eventos/${event.id}`,
+      url: `${window.location.origin}/eventos/${event.id}`,
+    });
+    downloadIcs(`${event.title.replace(/\s+/g, "_")}.ics`, ics);
+  };
 
   return (
     <AppShell>
       <div className="relative -mx-0">
-        {/* Hero dark */}
         <div className="text-white p-6 pt-8 pb-10" style={{ background: "var(--gradient-hero)" }}>
           <button onClick={() => nav({ to: "/" })} className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center mb-4">
             <ChevronLeft className="h-5 w-5" />
@@ -72,10 +101,35 @@ function EventPage() {
           )}
         </div>
 
-        <div className="px-5 -mt-6 pb-28">
+        <div className="px-5 -mt-6 pb-28 space-y-4">
+          {/* Action row */}
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => setShowInvite(true)} className="btn-primary text-sm">
+              <Share2 className="h-4 w-4" /> Convidar
+            </button>
+            <button onClick={addToCalendar} className="btn-ghost text-sm">
+              <CalendarPlus className="h-4 w-4" /> Agenda
+            </button>
+          </div>
+
+          {/* Map */}
+          {event.latitude && event.longitude && (
+            <div className="card p-3">
+              <p className="label flex items-center gap-1"><MapPin className="h-4 w-4" />Local</p>
+              <p className="text-xs text-muted-foreground mb-2">{event.address}</p>
+              <EventMap lat={event.latitude} lng={event.longitude} label={event.location ?? undefined} />
+              <a
+                href={`https://www.google.com/maps?q=${event.latitude},${event.longitude}`}
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-foreground mt-2"
+              >
+                Abrir no Google Maps <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          )}
 
           {/* RSVP */}
-          <div className="card mb-4">
+          <div className="card">
             <p className="label">Você vai?</p>
             <div className="grid grid-cols-3 gap-2">
               {[
@@ -90,12 +144,12 @@ function EventPage() {
 
           {/* Date voting */}
           {(dates ?? []).length > 0 && !event.confirmed_date && (
-            <div className="card mb-4">
+            <div className="card">
               <p className="label">Vote na melhor data</p>
               <div className="space-y-2">
                 {dates!.map((d: any) => {
                   const votes = d.event_date_votes?.length ?? 0;
-                  const mine = d.event_date_votes?.some((v: any) => v.user_id === RAFAEL_ID);
+                  const mine = d.event_date_votes?.some((v: any) => v.user_id === user.id);
                   return (
                     <button key={d.id} onClick={()=>vote(d.id)} className={`w-full flex items-center justify-between rounded-xl p-3 border ${mine ? "bg-accent border-primary" : "bg-card border-border"}`}>
                       <span className="text-sm font-medium">{new Date(d.proposed_date).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</span>
@@ -107,9 +161,29 @@ function EventPage() {
             </div>
           )}
 
+          {/* Participants */}
+          <div className="card">
+            <p className="label">Participantes ({parts?.length ?? 0})</p>
+            <div className="space-y-2">
+              {(parts ?? []).map((p: any) => (
+                <div key={p.id} className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center font-bold text-sm">
+                    {p.profiles?.name?.[0] ?? "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{p.profiles?.name ?? "Convidado"}</p>
+                  </div>
+                  <span className={`chip text-[10px] ${p.rsvp_status === "confirmed" ? "bg-success/20 text-foreground" : ""}`}>
+                    {p.rsvp_status === "confirmed" ? "Vai" : p.rsvp_status === "declined" ? "Não" : "Talvez"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Racha */}
           {Number(event.total_cost) > 0 && (
-            <div className="card mb-4">
+            <div className="card">
               <div className="flex items-center justify-between mb-3">
                 <p className="font-bold">Racha</p>
                 <span className="text-2xl font-bold text-primary">R$ {perPerson}</span>
@@ -117,7 +191,7 @@ function EventPage() {
               <p className="text-xs text-muted-foreground mb-3">R$ {Number(event.total_cost).toFixed(2)} ÷ {confirmed.length} confirmados</p>
               <div className="space-y-2">
                 {confirmed.map((p: any) => (
-                  <button key={p.id} onClick={()=>togglePaid(p.id, p.paid)} className="w-full flex items-center gap-3 py-2">
+                  <button key={p.id} onClick={()=>togglePaid(p.id, p.paid, p.user_id)} className="w-full flex items-center gap-3 py-2">
                     <div className={`h-6 w-6 rounded-full flex items-center justify-center ${p.paid ? "bg-primary text-primary-foreground" : "border-2 border-border"}`}>
                       {p.paid && <Check className="h-4 w-4" />}
                     </div>
@@ -137,10 +211,17 @@ function EventPage() {
               {(messages ?? []).slice().reverse().map((m: any) => (
                 <p key={m.id} className="text-xs text-muted-foreground truncate"><b className="text-foreground">{m.profiles?.name}:</b> {m.content}</p>
               ))}
+              {(!messages || messages.length === 0) && (
+                <p className="text-xs text-muted-foreground">Diga oi pra galera 👋</p>
+              )}
             </div>
           </Link>
         </div>
       </div>
+
+      {showInvite && event.invite_code && (
+        <InviteSheet inviteCode={event.invite_code} eventTitle={event.title} onClose={() => setShowInvite(false)} />
+      )}
     </AppShell>
   );
 }
