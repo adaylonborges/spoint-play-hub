@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RAFAEL_ID, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { ChevronLeft, Coins, Trophy, Settings, Award } from "lucide-react";
+import { ChevronLeft, Settings, LogOut } from "lucide-react";
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({ meta: [{ title: "Perfil — Spoint" }] }),
