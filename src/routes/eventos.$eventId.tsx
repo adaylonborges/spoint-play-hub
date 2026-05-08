@@ -73,16 +73,6 @@ function EventPage() {
         </div>
 
         <div className="px-5 -mt-6 pb-28">
-          {/* Challenge banner */}
-          {ch && (
-            <div className="card mb-4 border-primary/40 bg-accent flex items-start gap-3">
-              <Gift className="h-5 w-5 text-primary mt-0.5" />
-              <div>
-                <p className="font-bold text-sm">{ch.title}</p>
-                <p className="text-xs text-muted-foreground">Este evento conta para o desafio · {ch.reward_text}</p>
-              </div>
-            </div>
-          )}
 
           {/* RSVP */}
           <div className="card mb-4">
