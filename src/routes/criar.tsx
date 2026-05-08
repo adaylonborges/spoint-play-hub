@@ -30,13 +30,6 @@ function Criar() {
     },
   });
 
-  const { data: linkedChallenge } = useQuery({
-    queryKey: ["challenge-for-sport", sport],
-    queryFn: async () => {
-      const { data } = await supabase.from("challenges").select("*").eq("sport", sport).eq("active", true).maybeSingle();
-      return data;
-    },
-  });
 
   const perPerson = friends.length > 0 && cost ? (Number(cost) / (friends.length + 1)).toFixed(2) : "0.00";
 
