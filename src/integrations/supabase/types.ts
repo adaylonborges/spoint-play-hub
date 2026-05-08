@@ -14,7 +14,359 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      challenges: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string
+          goal: number
+          id: string
+          reward_text: string
+          reward_type: string
+          sport: string | null
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description: string
+          goal?: number
+          id?: string
+          reward_text: string
+          reward_type: string
+          sport?: string | null
+          title: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string
+          goal?: number
+          id?: string
+          reward_text?: string
+          reward_type?: string
+          sport?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      event_date_votes: {
+        Row: {
+          event_date_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          event_date_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          event_date_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_date_votes_event_date_id_fkey"
+            columns: ["event_date_id"]
+            isOneToOne: false
+            referencedRelation: "event_dates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_date_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_dates: {
+        Row: {
+          event_id: string
+          id: string
+          proposed_date: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          proposed_date: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          proposed_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_dates_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_messages: {
+        Row: {
+          content: string
+          created_at: string
+          event_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          event_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_messages_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_participants: {
+        Row: {
+          event_id: string
+          id: string
+          paid: boolean
+          rsvp_status: string
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          paid?: boolean
+          rsvp_status?: string
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          paid?: boolean
+          rsvp_status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          challenge_id: string | null
+          confirmed_date: string | null
+          created_at: string
+          id: string
+          location: string | null
+          owner_id: string
+          sport: string
+          status: string
+          title: string
+          total_cost: number
+        }
+        Insert: {
+          challenge_id?: string | null
+          confirmed_date?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          owner_id: string
+          sport: string
+          status?: string
+          title: string
+          total_cost?: number
+        }
+        Update: {
+          challenge_id?: string | null
+          confirmed_date?: string | null
+          created_at?: string
+          id?: string
+          location?: string | null
+          owner_id?: string
+          sport?: string
+          status?: string
+          title?: string
+          total_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          friend_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          friend_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          friend_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          age: number | null
+          avatar_url: string | null
+          city: string | null
+          created_at: string
+          frequency: string | null
+          id: string
+          level: string | null
+          main_sport: string | null
+          name: string
+          secondary_sport: string | null
+          social_profile: string | null
+          spoints: number
+          sports: string[] | null
+          time_pref: string | null
+          xp: number
+        }
+        Insert: {
+          age?: number | null
+          avatar_url?: string | null
+          city?: string | null
+          created_at?: string
+          frequency?: string | null
+          id?: string
+          level?: string | null
+          main_sport?: string | null
+          name: string
+          secondary_sport?: string | null
+          social_profile?: string | null
+          spoints?: number
+          sports?: string[] | null
+          time_pref?: string | null
+          xp?: number
+        }
+        Update: {
+          age?: number | null
+          avatar_url?: string | null
+          city?: string | null
+          created_at?: string
+          frequency?: string | null
+          id?: string
+          level?: string | null
+          main_sport?: string | null
+          name?: string
+          secondary_sport?: string | null
+          social_profile?: string | null
+          spoints?: number
+          sports?: string[] | null
+          time_pref?: string | null
+          xp?: number
+        }
+        Relationships: []
+      }
+      user_challenges: {
+        Row: {
+          challenge_id: string
+          completed: boolean
+          id: string
+          progress: number
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          completed?: boolean
+          id?: string
+          progress?: number
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          completed?: boolean
+          id?: string
+          progress?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_challenges_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_challenges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
