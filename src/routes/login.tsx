@@ -3,7 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { AppShell } from "@/components/AppShell";
-import spointLogo from "@/assets/spoint-logo.png";
+import { SpointLogo } from "@/components/SpointLogo";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Entrar — Spoint" }] }),
