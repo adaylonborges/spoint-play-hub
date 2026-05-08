@@ -63,7 +63,11 @@ function Login() {
 
   const google = async () => {
     setLoading(true); setError("");
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    // Preserve the invite redirect through the OAuth round-trip by sending it back to /login.
+    const redirectUri = redirect && redirect !== "/"
+      ? `${window.location.origin}/login?redirect=${redirect}`
+      : window.location.origin;
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: redirectUri });
     if (result.error) { setError("Erro com Google"); setLoading(false); return; }
     if (result.redirected) return;
     const { data } = await supabase.auth.getUser();
