@@ -14,42 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      challenges: {
-        Row: {
-          active: boolean
-          created_at: string
-          description: string
-          goal: number
-          id: string
-          reward_text: string
-          reward_type: string
-          sport: string | null
-          title: string
-        }
-        Insert: {
-          active?: boolean
-          created_at?: string
-          description: string
-          goal?: number
-          id?: string
-          reward_text: string
-          reward_type: string
-          sport?: string | null
-          title: string
-        }
-        Update: {
-          active?: boolean
-          created_at?: string
-          description?: string
-          goal?: number
-          id?: string
-          reward_text?: string
-          reward_type?: string
-          sport?: string | null
-          title?: string
-        }
-        Relationships: []
-      }
       event_date_votes: {
         Row: {
           event_date_id: string
@@ -189,11 +153,15 @@ export type Database = {
       }
       events: {
         Row: {
-          challenge_id: string | null
+          address: string | null
           confirmed_date: string | null
           created_at: string
+          description: string | null
           id: string
+          invite_code: string | null
+          latitude: number | null
           location: string | null
+          longitude: number | null
           owner_id: string
           sport: string
           status: string
@@ -201,11 +169,15 @@ export type Database = {
           total_cost: number
         }
         Insert: {
-          challenge_id?: string | null
+          address?: string | null
           confirmed_date?: string | null
           created_at?: string
+          description?: string | null
           id?: string
+          invite_code?: string | null
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           owner_id: string
           sport: string
           status?: string
@@ -213,11 +185,15 @@ export type Database = {
           total_cost?: number
         }
         Update: {
-          challenge_id?: string | null
+          address?: string | null
           confirmed_date?: string | null
           created_at?: string
+          description?: string | null
           id?: string
+          invite_code?: string | null
+          latitude?: number | null
           location?: string | null
+          longitude?: number | null
           owner_id?: string
           sport?: string
           status?: string
@@ -226,48 +202,8 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "events_challenge_id_fkey"
-            columns: ["challenge_id"]
-            isOneToOne: false
-            referencedRelation: "challenges"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "events_owner_id_fkey"
             columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      friendships: {
-        Row: {
-          friend_id: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          friend_id: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          friend_id?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "friendships_friend_id_fkey"
-            columns: ["friend_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "friendships_user_id_fkey"
-            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -328,51 +264,27 @@ export type Database = {
         }
         Relationships: []
       }
-      user_challenges: {
-        Row: {
-          challenge_id: string
-          completed: boolean
-          id: string
-          progress: number
-          user_id: string
-        }
-        Insert: {
-          challenge_id: string
-          completed?: boolean
-          id?: string
-          progress?: number
-          user_id: string
-        }
-        Update: {
-          challenge_id?: string
-          completed?: boolean
-          id?: string
-          progress?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_challenges_challenge_id_fkey"
-            columns: ["challenge_id"]
-            isOneToOne: false
-            referencedRelation: "challenges"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_challenges_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_event_by_invite: {
+        Args: { _code: string }
+        Returns: {
+          address: string
+          confirmed_date: string
+          id: string
+          location: string
+          owner_name: string
+          sport: string
+          title: string
+        }[]
+      }
+      is_event_participant: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

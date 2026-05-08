@@ -1,10 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { nanoid } from "nanoid";
 import { supabase } from "@/integrations/supabase/client";
-import { RAFAEL_ID, SPORTS, SPORT_EMOJI } from "@/lib/constants";
-import { useQuery } from "@tanstack/react-query";
+import { SPORTS, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { ChevronLeft, MapPin, DollarSign } from "lucide-react";
+import { ChevronLeft, DollarSign } from "lucide-react";
+import { useRequireAuth } from "@/hooks/useAuth";
+import { AddressSearch, type Place } from "@/components/AddressSearch";
 
 export const Route = createFileRoute("/criar")({
   head: () => ({ meta: [{ title: "Criar evento — Spoint" }] }),
@@ -12,68 +14,50 @@ export const Route = createFileRoute("/criar")({
 });
 
 function Criar() {
+  const { user, loading } = useRequireAuth();
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [sport, setSport] = useState("Beach Tennis");
   const [title, setTitle] = useState("");
   const [dates, setDates] = useState<string[]>(["", "", ""]);
-  const [location, setLocation] = useState("");
+  const [place, setPlace] = useState<Place | null>(null);
   const [cost, setCost] = useState("");
-  const [friends, setFriends] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-
-  const { data: friendsList } = useQuery({
-    queryKey: ["friends"],
-    queryFn: async () => {
-      const { data } = await supabase.from("friendships").select("friend_id, profiles:friend_id(id,name,city)").eq("user_id", RAFAEL_ID);
-      return data ?? [];
-    },
-  });
-
-
-  const perPerson = friends.length > 0 && cost ? (Number(cost) / (friends.length + 1)).toFixed(2) : "0.00";
+  const [error, setError] = useState("");
 
   const submit = async () => {
-    setSaving(true);
-    const { data: ev } = await supabase.from("events").insert({
-      owner_id: RAFAEL_ID, sport, title: title || `${sport} entre amigos`, location,
-      total_cost: Number(cost) || 0,
-    }).select().single();
-    if (ev) {
-      const validDates = dates.filter(Boolean);
-      let insertedDates: { id: string }[] = [];
-      if (validDates.length) {
-        const { data: dRows } = await supabase.from("event_dates")
-          .insert(validDates.map(d => ({ event_id: ev.id, proposed_date: new Date(d).toISOString() })))
-          .select("id");
-        insertedDates = dRows ?? [];
-      }
-      // All friends become participants. Selected = confirmed, others = invited (so we have voting visibility)
-      const allFriendIds = (friendsList ?? []).map((f: any) => f.profiles.id);
-      const participants = [
-        { event_id: ev.id, user_id: RAFAEL_ID, rsvp_status: "confirmed" as const },
-        ...allFriendIds.map((id: string) => ({
-          event_id: ev.id,
-          user_id: id,
-          rsvp_status: (friends.includes(id) ? "confirmed" : "invited") as "confirmed" | "invited",
-        })),
-      ];
-      await supabase.from("event_participants").insert(participants);
+    if (!user) return;
+    setSaving(true); setError("");
+    try {
+      const inviteCode = nanoid(8);
+      const { data: ev, error: evErr } = await supabase.from("events").insert({
+        owner_id: user.id,
+        sport,
+        title: title || `${sport} entre amigos`,
+        location: place?.name ?? "",
+        address: place?.address ?? null,
+        latitude: place?.lat ?? null,
+        longitude: place?.lng ?? null,
+        total_cost: Number(cost) || 0,
+        invite_code: inviteCode,
+      }).select().single();
+      if (evErr) throw evErr;
 
-      // Seed simulated votes so the date-voting UI has signal immediately
-      if (insertedDates.length) {
-        const voters = [RAFAEL_ID, ...allFriendIds];
-        const votes = voters.map((uid, i) => ({
-          event_date_id: insertedDates[i % insertedDates.length].id,
-          user_id: uid,
-        }));
-        await supabase.from("event_date_votes").insert(votes);
+      const validDates = dates.filter(Boolean);
+      if (validDates.length) {
+        await supabase.from("event_dates")
+          .insert(validDates.map(d => ({ event_id: ev.id, proposed_date: new Date(d).toISOString() })));
       }
+      // Owner is auto-confirmed participant
+      await supabase.from("event_participants").insert({ event_id: ev.id, user_id: user.id, rsvp_status: "confirmed" });
 
       nav({ to: "/eventos/$eventId", params: { eventId: ev.id } });
-    }
-    setSaving(false);
+    } catch (e: any) {
+      setError(e.message ?? "Erro ao criar evento");
+    } finally { setSaving(false); }
   };
+
+  if (loading || !user) return <AppShell hideNav><div className="screen">Carregando...</div></AppShell>;
 
   return (
     <AppShell hideNav>
@@ -83,7 +67,7 @@ function Criar() {
             <ChevronLeft className="h-5 w-5" />
           </button>
           <div className="flex-1 flex gap-1.5">
-            {[0,1,2,3].map(i => <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`} />)}
+            {[0,1,2].map(i => <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-muted"}`} />)}
           </div>
         </header>
 
@@ -121,46 +105,25 @@ function Criar() {
         {step === 2 && (
           <>
             <h1 className="h1 mb-1">Local e custo</h1>
-            <p className="muted mb-5">A divisão é automática</p>
-            <label className="label"><MapPin className="inline h-4 w-4 mr-1" />Local</label>
-            <input className="input mb-4" value={location} onChange={e=>setLocation(e.target.value)} placeholder="Arena Sand — Itupeva" />
+            <p className="muted mb-5">Busque pelo nome do local ou endereço</p>
+            <label className="label">Local</label>
+            <div className="mb-4"><AddressSearch value={place} onSelect={setPlace} /></div>
+            {place && (
+              <p className="text-xs text-muted-foreground mb-4 truncate">📍 {place.address}</p>
+            )}
             <label className="label"><DollarSign className="inline h-4 w-4 mr-1" />Custo total (R$)</label>
-            <input type="number" className="input" value={cost} onChange={e=>setCost(e.target.value)} placeholder="240" />
-            <div className="card mt-5 bg-secondary text-secondary-foreground border-secondary">
-              <p className="text-xs opacity-70">Por pessoa ({friends.length + 1} confirmados)</p>
-              <p className="text-3xl font-bold">R$ {perPerson}</p>
-              <p className="text-xs opacity-70 mt-1">Recalcula automaticamente conforme confirmam</p>
-            </div>
-          </>
-        )}
-
-        {step === 3 && (
-          <>
-            <h1 className="h1 mb-1">Convide os amigos</h1>
-            <p className="muted mb-5">Selecione quem vai jogar</p>
-            <div className="space-y-2">
-              {friendsList?.map((f: any) => {
-                const p = f.profiles;
-                const on = friends.includes(p.id);
-                return (
-                  <button key={p.id} onClick={() => setFriends(on ? friends.filter(x => x !== p.id) : [...friends, p.id])}
-                    className={`w-full flex items-center gap-3 rounded-xl p-3 border ${on ? "bg-accent border-primary" : "bg-card border-border"}`}>
-                    <div className="h-10 w-10 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center font-bold">{p.name[0]}</div>
-                    <div className="flex-1 text-left">
-                      <p className="font-semibold text-sm">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">{p.city}</p>
-                    </div>
-                    <div className={`h-5 w-5 rounded-full border-2 ${on ? "bg-primary border-primary" : "border-border"}`} />
-                  </button>
-                );
-              })}
-            </div>
+            <input type="number" className="input" value={cost} onChange={e=>setCost(e.target.value)} placeholder="240 (opcional)" />
+            {error && <p className="text-sm text-destructive mt-3">{error}</p>}
           </>
         )}
 
         <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-5 bg-background border-t border-border">
-          <button disabled={saving} onClick={() => step === 3 ? submit() : setStep(step + 1)} className="btn-primary w-full disabled:opacity-40">
-            {step === 3 ? (saving ? "Criando..." : "Criar evento") : "Continuar"}
+          <button
+            disabled={saving || (step === 2 && !place)}
+            onClick={() => step === 2 ? submit() : setStep(step + 1)}
+            className="btn-primary w-full disabled:opacity-40"
+          >
+            {step === 2 ? (saving ? "Criando..." : "Criar evento") : "Continuar"}
           </button>
         </div>
       </div>

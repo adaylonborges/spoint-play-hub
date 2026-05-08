@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { RAFAEL_ID, SPORT_EMOJI } from "@/lib/constants";
+import { SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
 import { Bell, Calendar, ChevronRight, Plus, MapPin } from "lucide-react";
 import { SpointLogo } from "@/components/SpointLogo";
+import { useRequireAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -17,25 +18,39 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const { user, loading } = useRequireAuth();
+
   const { data: profile } = useQuery({
-    queryKey: ["profile", RAFAEL_ID],
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("id", RAFAEL_ID).single();
-      return data;
-    },
+    enabled: !!user,
+    queryKey: ["profile", user?.id],
+    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).single()).data,
   });
 
   const { data: events } = useQuery({
-    queryKey: ["home-events"],
+    enabled: !!user,
+    queryKey: ["my-events-list", user?.id],
     queryFn: async () => {
+      // events I'm a participant of
+      const { data: parts } = await supabase
+        .from("event_participants")
+        .select("event_id")
+        .eq("user_id", user!.id);
+      const eventIds = (parts ?? []).map((p) => p.event_id);
+      if (!eventIds.length) return [];
       const { data } = await supabase
         .from("events")
-        .select("*, event_participants(count)")
-        .order("created_at", { ascending: false })
-        .limit(8);
+        .select("*")
+        .in("id", eventIds)
+        .order("created_at", { ascending: false });
       return data ?? [];
     },
   });
+
+  if (loading || !user) return <AppShell><div className="screen">Carregando...</div></AppShell>;
+
+  const now = new Date();
+  const upcoming = (events ?? []).filter((e: any) => !e.confirmed_date || new Date(e.confirmed_date) >= now);
+  const past = (events ?? []).filter((e: any) => e.confirmed_date && new Date(e.confirmed_date) < now);
 
   return (
     <AppShell>
@@ -70,26 +85,43 @@ function HomePage() {
           <Calendar className="h-4 w-4 text-muted-foreground" />
         </div>
         <div className="grid gap-3 lg:grid-cols-2 mb-6">
-          {events?.map((e: any) => (
-            <Link key={e.id} to="/eventos/$eventId" params={{ eventId: e.id }} className="card flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
-                {SPORT_EMOJI[e.sport] ?? "🏅"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate">{e.title}</p>
-                <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {e.location} {e.confirmed_date ? "· " + new Date(e.confirmed_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "· Aguardando data"}
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          {upcoming.map((e: any) => <EventCard key={e.id} ev={e} />)}
+          {upcoming.length === 0 && (
+            <Link to="/criar" className="card text-center py-8 lg:col-span-2">
+              <p className="text-3xl mb-2">🎾</p>
+              <p className="font-semibold">Nenhum jogo marcado</p>
+              <p className="text-xs text-muted-foreground mt-1">Crie o primeiro e convide a galera</p>
             </Link>
-          ))}
-          {events?.length === 0 && (
-            <p className="muted text-center py-6">Nenhum jogo ainda. Crie o primeiro 🎾</p>
           )}
         </div>
+
+        {past.length > 0 && (
+          <>
+            <h2 className="h2 mb-3">Histórico</h2>
+            <div className="grid gap-3 lg:grid-cols-2">
+              {past.slice(0, 6).map((e: any) => <EventCard key={e.id} ev={e} />)}
+            </div>
+          </>
+        )}
       </div>
     </AppShell>
+  );
+}
+
+function EventCard({ ev }: { ev: any }) {
+  return (
+    <Link to="/eventos/$eventId" params={{ eventId: ev.id }} className="card flex items-center gap-3">
+      <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center text-2xl">
+        {SPORT_EMOJI[ev.sport] ?? "🏅"}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold truncate">{ev.title}</p>
+        <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+          <MapPin className="h-3 w-3" />
+          {ev.location} {ev.confirmed_date ? "· " + new Date(ev.confirmed_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "· Aguardando data"}
+        </p>
+      </div>
+      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+    </Link>
   );
 }

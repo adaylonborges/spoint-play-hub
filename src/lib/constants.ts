@@ -1,5 +1,3 @@
-export const RAFAEL_ID = "11111111-1111-1111-1111-111111111111";
-
 export const SPORTS = [
   "Beach Tennis", "Tênis", "Futebol", "Futsal", "Basquete", "Vôlei",
   "Corrida", "Ciclismo", "Natação", "Funcional", "Crossfit", "Musculação",
