@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as DesafiosRouteImport } from './routes/desafios'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as IndexRouteImport } from './routes/index'
@@ -31,6 +32,11 @@ const PerfilRoute = PerfilRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DesafiosRoute = DesafiosRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
   '/desafios': typeof DesafiosRoute
+  '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
   '/ranking': typeof RankingRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
   '/desafios': typeof DesafiosRoute
+  '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
   '/ranking': typeof RankingRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/criar': typeof CriarRoute
   '/desafios': typeof DesafiosRoute
+  '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
   '/ranking': typeof RankingRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/criar'
     | '/desafios'
+    | '/login'
     | '/onboarding'
     | '/perfil'
     | '/ranking'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/criar'
     | '/desafios'
+    | '/login'
     | '/onboarding'
     | '/perfil'
     | '/ranking'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/criar'
     | '/desafios'
+    | '/login'
     | '/onboarding'
     | '/perfil'
     | '/ranking'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CriarRoute: typeof CriarRoute
   DesafiosRoute: typeof DesafiosRoute
+  LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   PerfilRoute: typeof PerfilRoute
   RankingRoute: typeof RankingRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/desafios': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CriarRoute: CriarRoute,
   DesafiosRoute: DesafiosRoute,
+  LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   PerfilRoute: PerfilRoute,
   RankingRoute: RankingRoute,
@@ -208,3 +229,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
