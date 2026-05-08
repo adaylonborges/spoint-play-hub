@@ -239,15 +239,25 @@ function EventPage() {
           </div>
 
           {/* Date voting */}
-          {(dates ?? []).length > 0 && !event.confirmed_date && (
+          {(dates ?? []).length > 0 && !dateConfirmed && (
             <div className="card">
-              <p className="label">Vote na melhor data</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="label mb-0">Vote na melhor data</p>
+                {votingDeadline && (
+                  <span className="text-xs">
+                    {votingOpen ? <>Encerra em <VotingCountdown deadline={votingDeadline} /></> : <span className="font-bold text-destructive">Votação encerrada</span>}
+                  </span>
+                )}
+              </div>
+              {votingClosed && (
+                <p className="text-xs text-muted-foreground mb-2">Confirmando data vencedora…</p>
+              )}
               <div className="space-y-2">
                 {dates!.map((d: any) => {
                   const votes = d.event_date_votes?.length ?? 0;
                   const mine = d.event_date_votes?.some((v: any) => v.user_id === user.id);
                   return (
-                    <button key={d.id} onClick={()=>vote(d.id)} className={`w-full flex items-center justify-between rounded-xl p-3 border ${mine ? "bg-accent border-primary" : "bg-card border-border"}`}>
+                    <button key={d.id} onClick={()=>vote(d.id)} disabled={!votingOpen} className={`w-full flex items-center justify-between rounded-xl p-3 border disabled:opacity-60 disabled:cursor-not-allowed ${mine ? "bg-accent border-primary" : "bg-card border-border"}`}>
                       <span className="text-sm font-medium">{new Date(d.proposed_date).toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" })}</span>
                       <span className="text-xs font-bold">{votes} voto{votes!==1?"s":""}</span>
                     </button>
