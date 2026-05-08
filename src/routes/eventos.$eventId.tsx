@@ -176,15 +176,37 @@ function EventPage() {
         </div>
 
         <div className="relative z-10 px-4 sm:px-5 -mt-4 pb-28 space-y-4">
-          {/* Action row */}
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => setShowInvite(true)} className="btn-primary text-sm px-3 py-3">
-              <Share2 className="h-4 w-4" /> Convidar
-            </button>
-            <button onClick={handleCalendarClick} className="btn-ghost text-sm px-3 py-3">
-              <CalendarPlus className="h-4 w-4" /> Agenda
-            </button>
-          </div>
+          {/* Action row / CTA */}
+          {dateConfirmed ? (
+            <div className="card relative overflow-hidden text-center" style={{ background: "var(--gradient-primary, hsl(var(--primary)))" }}>
+              <div className="flex flex-col items-center gap-3 py-2 text-primary-foreground">
+                <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                  <CalendarPlus className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wide opacity-90">Data confirmada</p>
+                  <p className="font-bold text-lg leading-tight">
+                    {new Date(event.confirmed_date!).toLocaleString("pt-BR", { dateStyle: "full", timeStyle: "short" })}
+                  </p>
+                </div>
+                <button onClick={handleCalendarClick} className="w-full rounded-2xl bg-white text-primary font-bold py-3 px-4 inline-flex items-center justify-center gap-2 shadow-lg">
+                  <CalendarPlus className="h-5 w-5" /> Adicionar à minha agenda
+                </button>
+                <button onClick={() => setShowInvite(true)} className="text-sm font-semibold opacity-90 inline-flex items-center gap-1">
+                  <Share2 className="h-4 w-4" /> Convidar amigos
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setShowInvite(true)} className="btn-primary text-sm px-3 py-3">
+                <Share2 className="h-4 w-4" /> Convidar
+              </button>
+              <button onClick={handleCalendarClick} className="btn-ghost text-sm px-3 py-3" disabled={!calendarPayload()}>
+                <CalendarPlus className="h-4 w-4" /> Agenda
+              </button>
+            </div>
+          )}
 
           {/* Map */}
           {event.latitude && event.longitude && (
