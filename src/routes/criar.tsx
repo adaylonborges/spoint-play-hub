@@ -108,15 +108,6 @@ function Criar() {
             </div>
             <label className="label">Nome do evento</label>
             <input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="BT no fim de tarde" />
-            {linkedChallenge && (
-              <div className="mt-4 rounded-2xl border border-primary/40 bg-accent p-4 flex gap-3">
-                <Gift className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-sm">Conta para o desafio: {linkedChallenge.title}</p>
-                  <p className="text-xs text-muted-foreground">Recompensa: {linkedChallenge.reward_text}</p>
-                </div>
-              </div>
-            )}
           </>
         )}
 
