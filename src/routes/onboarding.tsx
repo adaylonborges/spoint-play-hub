@@ -14,6 +14,7 @@ export const Route = createFileRoute("/onboarding")({
 
 function Onboarding() {
   const { user, loading: authLoading } = useRequireAuth();
+  const { redirect } = Route.useSearch();
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
