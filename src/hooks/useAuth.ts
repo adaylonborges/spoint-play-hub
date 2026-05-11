@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { normalizeRedirectPath } from "@/lib/authRedirect";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -28,7 +29,7 @@ export function useRequireAuth() {
   const loc = useLocation();
   useEffect(() => {
     if (!loading && !user) {
-      const redirect = encodeURIComponent(loc.pathname + loc.searchStr);
+      const redirect = normalizeRedirectPath(`${loc.pathname}${loc.searchStr}`, "/");
       nav({ to: "/login", search: { redirect } as never });
     }
   }, [loading, user, nav, loc.pathname, loc.searchStr]);
