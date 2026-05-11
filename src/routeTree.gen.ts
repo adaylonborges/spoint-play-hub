@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RecompensasRouteImport } from './routes/recompensas'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as LoginRouteImport } from './routes/login'
@@ -18,6 +19,11 @@ import { Route as EventosEventIdRouteImport } from './routes/eventos.$eventId'
 import { Route as ConviteCodeRouteImport } from './routes/convite.$code'
 import { Route as ChatEventIdRouteImport } from './routes/chat.$eventId'
 
+const RecompensasRoute = RecompensasRouteImport.update({
+  id: '/recompensas',
+  path: '/recompensas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PerfilRoute = PerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
+  '/recompensas': typeof RecompensasRoute
   '/chat/$eventId': typeof ChatEventIdRoute
   '/convite/$code': typeof ConviteCodeRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
+  '/recompensas': typeof RecompensasRoute
   '/chat/$eventId': typeof ChatEventIdRoute
   '/convite/$code': typeof ConviteCodeRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/perfil': typeof PerfilRoute
+  '/recompensas': typeof RecompensasRoute
   '/chat/$eventId': typeof ChatEventIdRoute
   '/convite/$code': typeof ConviteCodeRoute
   '/eventos/$eventId': typeof EventosEventIdRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/perfil'
+    | '/recompensas'
     | '/chat/$eventId'
     | '/convite/$code'
     | '/eventos/$eventId'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/perfil'
+    | '/recompensas'
     | '/chat/$eventId'
     | '/convite/$code'
     | '/eventos/$eventId'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/perfil'
+    | '/recompensas'
     | '/chat/$eventId'
     | '/convite/$code'
     | '/eventos/$eventId'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   PerfilRoute: typeof PerfilRoute
+  RecompensasRoute: typeof RecompensasRoute
   ChatEventIdRoute: typeof ChatEventIdRoute
   ConviteCodeRoute: typeof ConviteCodeRoute
   EventosEventIdRoute: typeof EventosEventIdRoute
@@ -136,6 +149,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/recompensas': {
+      id: '/recompensas'
+      path: '/recompensas'
+      fullPath: '/recompensas'
+      preLoaderRoute: typeof RecompensasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/perfil': {
       id: '/perfil'
       path: '/perfil'
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   PerfilRoute: PerfilRoute,
+  RecompensasRoute: RecompensasRoute,
   ChatEventIdRoute: ChatEventIdRoute,
   ConviteCodeRoute: ConviteCodeRoute,
   EventosEventIdRoute: EventosEventIdRoute,
@@ -208,3 +229,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
