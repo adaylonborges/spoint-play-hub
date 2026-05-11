@@ -4,13 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { ChevronLeft, MapPin, Check, MessageCircle, Share2, CalendarPlus, ExternalLink } from "lucide-react";
+import { ChevronLeft, MapPin, Check, MessageCircle, Share2, CalendarPlus, ExternalLink, Camera, Sparkles } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { EventMap } from "@/components/EventMap";
 import { InviteSheet } from "@/components/InviteSheet";
 import { generateIcs, downloadIcs } from "@/lib/ics";
 import { buildGoogleCalendarUrl, isMobileUA } from "@/lib/calendar";
 import { getSportImage } from "@/lib/sportImages";
+import { uploadEventPhoto, publicPhotoUrl, awardShare } from "@/lib/spoints";
+import { toast } from "sonner";
 import centauroAd from "@/assets/ads/centauro-joga35.jpg";
 
 export const Route = createFileRoute("/eventos/$eventId")({
