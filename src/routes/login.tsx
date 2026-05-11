@@ -42,6 +42,14 @@ function Login() {
   };
 
   const submit = async () => {
+    if (!email.trim() || !password) {
+      setError("Preencha e-mail e senha.");
+      return;
+    }
+    if (mode === "signup" && password.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
     setLoading(true); setError("");
     try {
       if (mode === "signup") {
