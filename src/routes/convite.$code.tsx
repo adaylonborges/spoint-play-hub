@@ -6,6 +6,7 @@ import { SPORT_EMOJI } from "@/lib/constants";
 import { MapPin, LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { SpointLogo } from "@/components/SpointLogo";
+import { normalizeRedirectPath } from "@/lib/authRedirect";
 
 export const Route = createFileRoute("/convite/$code")({
   head: () => ({ meta: [{ title: "Convite — Spoint" }] }),
@@ -88,7 +89,7 @@ function InvitePage() {
             </button>
           ) : (
             <button
-              onClick={() => nav({ to: "/login", search: { redirect: encodeURIComponent(`/convite/${code}`) } as never })}
+              onClick={() => nav({ to: "/login", search: { redirect: normalizeRedirectPath(`/convite/${code}`, "/") } as never })}
               className="btn-primary w-full"
             >
               <LogIn className="h-4 w-4" /> Entrar para confirmar
