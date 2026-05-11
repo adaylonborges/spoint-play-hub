@@ -52,6 +52,8 @@ function Criar() {
       // Owner is auto-confirmed participant
       await supabase.from("event_participants").insert({ event_id: ev.id, user_id: user.id, rsvp_status: "confirmed" });
 
+      toast.success("Evento criado! +50 Spoints 🎯");
+
       nav({ to: "/eventos/$eventId", params: { eventId: ev.id } });
     } catch (e: any) {
       setError(e.message ?? "Erro ao criar evento");
