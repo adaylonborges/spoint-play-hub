@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, DollarSign } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { AddressSearch, type Place } from "@/components/AddressSearch";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/criar")({
   head: () => ({ meta: [{ title: "Criar evento — Spoint" }] }),
