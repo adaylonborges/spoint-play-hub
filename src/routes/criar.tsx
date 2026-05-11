@@ -98,7 +98,7 @@ function Criar() {
               {dates.map((d, i) => (
                 <div key={i}>
                   <label className="label">Opção {i+1}</label>
-                  <input type="datetime-local" className="input" value={d} onChange={e => setDates(dates.map((x, j) => j===i ? e.target.value : x))} />
+                  <input type="datetime-local" className="input w-full min-w-0 block appearance-none" value={d} onChange={e => setDates(dates.map((x, j) => j===i ? e.target.value : x))} />
                 </div>
               ))}
             </div>
