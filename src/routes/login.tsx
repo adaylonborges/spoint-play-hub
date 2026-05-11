@@ -42,6 +42,14 @@ function Login() {
   };
 
   const submit = async () => {
+    if (!email.trim() || !password) {
+      setError("Preencha e-mail e senha.");
+      return;
+    }
+    if (mode === "signup" && password.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
     setLoading(true); setError("");
     try {
       if (mode === "signup") {
@@ -64,8 +72,10 @@ function Login() {
   const google = async () => {
     setLoading(true); setError("");
     // Preserve the invite redirect through the OAuth round-trip by sending it back to /login.
-    const redirectUri = redirect && redirect !== "/"
-      ? `${window.location.origin}/login?redirect=${redirect}`
+    let plain = redirect || "/";
+    try { while (plain.startsWith("%")) plain = decodeURIComponent(plain); } catch {}
+    const redirectUri = plain && plain !== "/"
+      ? `${window.location.origin}/login?redirect=${encodeURIComponent(plain)}`
       : window.location.origin;
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: redirectUri });
     if (result.error) { setError("Erro com Google"); setLoading(false); return; }
