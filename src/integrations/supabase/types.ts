@@ -151,6 +151,30 @@ export type Database = {
           },
         ]
       }
+      event_photos: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           address: string | null
@@ -264,11 +288,52 @@ export type Database = {
         }
         Relationships: []
       }
+      spoint_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          event_id: string | null
+          id: string
+          kind: string
+          meta: Json | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          kind: string
+          meta?: Json | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          kind?: string
+          meta?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      award_share: { Args: { _event_id: string }; Returns: number }
+      award_spoints: {
+        Args: {
+          _amount: number
+          _event_id: string
+          _kind: string
+          _meta?: Json
+          _user_id: string
+        }
+        Returns: undefined
+      }
       get_event_by_invite: {
         Args: { _code: string }
         Returns: {

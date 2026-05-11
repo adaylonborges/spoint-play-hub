@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, DollarSign } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { AddressSearch, type Place } from "@/components/AddressSearch";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/criar")({
   head: () => ({ meta: [{ title: "Criar evento — Spoint" }] }),
@@ -50,6 +51,8 @@ function Criar() {
       }
       // Owner is auto-confirmed participant
       await supabase.from("event_participants").insert({ event_id: ev.id, user_id: user.id, rsvp_status: "confirmed" });
+
+      toast.success("Evento criado! +50 Spoints 🎯");
 
       nav({ to: "/eventos/$eventId", params: { eventId: ev.id } });
     } catch (e: any) {

@@ -4,13 +4,15 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { ChevronLeft, MapPin, Check, MessageCircle, Share2, CalendarPlus, ExternalLink } from "lucide-react";
+import { ChevronLeft, MapPin, Check, MessageCircle, Share2, CalendarPlus, ExternalLink, Camera, Sparkles } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { EventMap } from "@/components/EventMap";
 import { InviteSheet } from "@/components/InviteSheet";
 import { generateIcs, downloadIcs } from "@/lib/ics";
 import { buildGoogleCalendarUrl, isMobileUA } from "@/lib/calendar";
 import { getSportImage } from "@/lib/sportImages";
+import { uploadEventPhoto, publicPhotoUrl, awardShare } from "@/lib/spoints";
+import { toast } from "sonner";
 import centauroAd from "@/assets/ads/centauro-joga35.jpg";
 
 export const Route = createFileRoute("/eventos/$eventId")({
@@ -65,6 +67,13 @@ function EventPage() {
     queryKey: ["msgs-preview", eventId],
     queryFn: async () => (await supabase.from("event_messages").select("*, profiles(name)").eq("event_id", eventId).order("created_at", { ascending: false }).limit(2)).data ?? [],
   });
+  const { data: photos } = useQuery({
+    enabled: !!user,
+    queryKey: ["photos", eventId],
+    queryFn: async () => (await (supabase as any).from("event_photos").select("*, profiles(name)").eq("event_id", eventId).order("created_at", { ascending: false })).data ?? [],
+  });
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const earliestDate = useMemo(() => {
     const list = (dates ?? []).map((d: any) => new Date(d.proposed_date).getTime()).filter((n: number) => !isNaN(n));
@@ -153,6 +162,49 @@ function EventPage() {
     if (!calendarPayload()) return;
     if (isMobileUA()) openGoogleCalendar();
     else setShowCal(true);
+  };
+
+  const eventHappened = !!event.confirmed_date && new Date(event.confirmed_date).getTime() < Date.now();
+  const myPhoto = (photos ?? []).find((p: any) => p.user_id === user.id);
+  const isConfirmedParticipant = me?.rsvp_status === "confirmed" || isOwner;
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      await uploadEventPhoto(file, eventId, user.id);
+      toast.success("Foto enviada! +150 Spoints 🎉");
+      qc.invalidateQueries({ queryKey: ["photos", eventId] });
+      qc.invalidateQueries({ queryKey: ["profile-spoints", user.id] });
+      qc.invalidateQueries({ queryKey: ["profile-full", user.id] });
+    } catch (err: any) {
+      toast.error(err.message ?? "Erro ao enviar foto");
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/eventos/${event.id}`;
+    const text = `Joguei ${event.sport} no Spoint! 🏆 ${url}`;
+    setSharing(true);
+    try {
+      if (navigator.share) {
+        try { await navigator.share({ title: event.title, text, url }); } catch { /* user canceled */ }
+      } else {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+      }
+      try {
+        await awardShare(eventId);
+        toast.success("+20 Spoints por compartilhar! 🔗");
+        qc.invalidateQueries({ queryKey: ["profile-spoints", user.id] });
+        qc.invalidateQueries({ queryKey: ["profile-full", user.id] });
+      } catch { /* already awarded */ }
+    } finally {
+      setSharing(false);
+    }
   };
 
   return (
@@ -325,6 +377,46 @@ function EventPage() {
               )}
             </div>
           </Link>
+
+          {/* Photo of the day + Share (post-game) */}
+          {eventHappened && (
+            <div className="card">
+              <div className="flex items-center justify-between mb-2">
+                <p className="label mb-0 flex items-center gap-1"><Camera className="h-4 w-4" />Foto do jogo</p>
+                <span className="chip-yellow text-[10px]">+150 Spoints</span>
+              </div>
+
+              {(photos ?? []).length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 mb-3">
+                  {photos!.map((p: any) => (
+                    <div key={p.id} className="relative flex-shrink-0">
+                      <img src={publicPhotoUrl(p.storage_path)} alt={p.profiles?.name ?? "Foto"} className="h-24 w-24 object-cover rounded-xl" />
+                      <span className="absolute bottom-1 left-1 right-1 text-[10px] font-semibold text-white bg-black/55 rounded px-1 truncate">{p.profiles?.name ?? "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isConfirmedParticipant && !myPhoto && (
+                <label className={`btn-primary w-full cursor-pointer ${uploadingPhoto ? "opacity-60" : ""}`}>
+                  <Camera className="h-4 w-4" />
+                  {uploadingPhoto ? "Enviando..." : "Enviar foto do jogo"}
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                </label>
+              )}
+              {myPhoto && (
+                <p className="text-xs text-success font-semibold flex items-center gap-1"><Sparkles className="h-3 w-3" /> Você ganhou +150 Spoints pela foto</p>
+              )}
+              {!isConfirmedParticipant && !myPhoto && (
+                <p className="text-xs text-muted-foreground">Apenas confirmados podem enviar foto.</p>
+              )}
+
+              <button onClick={handleShare} disabled={sharing} className="btn-ghost w-full mt-3 disabled:opacity-60">
+                <Share2 className="h-4 w-4" />
+                Compartilhar o jogo (+20)
+              </button>
+            </div>
+          )}
 
           {/* Sponsored banner */}
           <a
