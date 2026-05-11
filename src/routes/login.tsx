@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { AppShell } from "@/components/AppShell";
 import { SpointLogo } from "@/components/SpointLogo";
+import { normalizeRedirectPath } from "@/lib/authRedirect";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (s: Record<string, unknown>) => ({ redirect: (s.redirect as string) || "/" }),
@@ -30,14 +31,14 @@ function Login() {
   }, []);
 
   const goAfterAuth = async (userId: string) => {
-    const target = redirect && redirect !== "/login" ? decodeURIComponent(redirect) : null;
+    const target = normalizeRedirectPath(redirect, "/");
     // If profile is incomplete, route to onboarding first (preserving redirect)
     const { data: prof } = await supabase.from("profiles").select("main_sport").eq("id", userId).maybeSingle();
     if (!prof?.main_sport) {
-      nav({ to: "/onboarding", search: target ? { redirect: encodeURIComponent(target) } as never : ({} as never) });
+      nav({ to: "/onboarding", search: target !== "/" ? { redirect: target } as never : ({} as never) });
       return;
     }
-    if (target) window.location.href = target;
+    if (target !== "/") window.location.href = target;
     else nav({ to: "/" });
   };
 
@@ -71,9 +72,7 @@ function Login() {
 
   const google = async () => {
     setLoading(true); setError("");
-    // Preserve the invite redirect through the OAuth round-trip by sending it back to /login.
-    let plain = redirect || "/";
-    try { while (plain.startsWith("%")) plain = decodeURIComponent(plain); } catch {}
+    const plain = normalizeRedirectPath(redirect, "/");
     const redirectUri = plain && plain !== "/"
       ? `${window.location.origin}/login?redirect=${encodeURIComponent(plain)}`
       : window.location.origin;
