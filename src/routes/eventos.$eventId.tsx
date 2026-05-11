@@ -67,6 +67,13 @@ function EventPage() {
     queryKey: ["msgs-preview", eventId],
     queryFn: async () => (await supabase.from("event_messages").select("*, profiles(name)").eq("event_id", eventId).order("created_at", { ascending: false }).limit(2)).data ?? [],
   });
+  const { data: photos } = useQuery({
+    enabled: !!user,
+    queryKey: ["photos", eventId],
+    queryFn: async () => (await (supabase as any).from("event_photos").select("*, profiles(name)").eq("event_id", eventId).order("created_at", { ascending: false })).data ?? [],
+  });
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const earliestDate = useMemo(() => {
     const list = (dates ?? []).map((d: any) => new Date(d.proposed_date).getTime()).filter((n: number) => !isNaN(n));
