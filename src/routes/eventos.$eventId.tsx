@@ -164,6 +164,49 @@ function EventPage() {
     else setShowCal(true);
   };
 
+  const eventHappened = !!event.confirmed_date && new Date(event.confirmed_date).getTime() < Date.now();
+  const myPhoto = (photos ?? []).find((p: any) => p.user_id === user.id);
+  const isConfirmedParticipant = me?.rsvp_status === "confirmed" || isOwner;
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      await uploadEventPhoto(file, eventId, user.id);
+      toast.success("Foto enviada! +150 Spoints 🎉");
+      qc.invalidateQueries({ queryKey: ["photos", eventId] });
+      qc.invalidateQueries({ queryKey: ["profile-spoints", user.id] });
+      qc.invalidateQueries({ queryKey: ["profile-full", user.id] });
+    } catch (err: any) {
+      toast.error(err.message ?? "Erro ao enviar foto");
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/eventos/${event.id}`;
+    const text = `Joguei ${event.sport} no Spoint! 🏆 ${url}`;
+    setSharing(true);
+    try {
+      if (navigator.share) {
+        try { await navigator.share({ title: event.title, text, url }); } catch { /* user canceled */ }
+      } else {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+      }
+      try {
+        await awardShare(eventId);
+        toast.success("+20 Spoints por compartilhar! 🔗");
+        qc.invalidateQueries({ queryKey: ["profile-spoints", user.id] });
+        qc.invalidateQueries({ queryKey: ["profile-full", user.id] });
+      } catch { /* already awarded */ }
+    } finally {
+      setSharing(false);
+    }
+  };
+
   return (
     <AppShell>
       <div className="relative">
