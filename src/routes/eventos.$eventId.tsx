@@ -378,6 +378,46 @@ function EventPage() {
             </div>
           </Link>
 
+          {/* Photo of the day + Share (post-game) */}
+          {eventHappened && (
+            <div className="card">
+              <div className="flex items-center justify-between mb-2">
+                <p className="label mb-0 flex items-center gap-1"><Camera className="h-4 w-4" />Foto do jogo</p>
+                <span className="chip-yellow text-[10px]">+150 Spoints</span>
+              </div>
+
+              {(photos ?? []).length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 mb-3">
+                  {photos!.map((p: any) => (
+                    <div key={p.id} className="relative flex-shrink-0">
+                      <img src={publicPhotoUrl(p.storage_path)} alt={p.profiles?.name ?? "Foto"} className="h-24 w-24 object-cover rounded-xl" />
+                      <span className="absolute bottom-1 left-1 right-1 text-[10px] font-semibold text-white bg-black/55 rounded px-1 truncate">{p.profiles?.name ?? "—"}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isConfirmedParticipant && !myPhoto && (
+                <label className={`btn-primary w-full cursor-pointer ${uploadingPhoto ? "opacity-60" : ""}`}>
+                  <Camera className="h-4 w-4" />
+                  {uploadingPhoto ? "Enviando..." : "Enviar foto do jogo"}
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                </label>
+              )}
+              {myPhoto && (
+                <p className="text-xs text-success font-semibold flex items-center gap-1"><Sparkles className="h-3 w-3" /> Você ganhou +150 Spoints pela foto</p>
+              )}
+              {!isConfirmedParticipant && !myPhoto && (
+                <p className="text-xs text-muted-foreground">Apenas confirmados podem enviar foto.</p>
+              )}
+
+              <button onClick={handleShare} disabled={sharing} className="btn-ghost w-full mt-3 disabled:opacity-60">
+                <Share2 className="h-4 w-4" />
+                Compartilhar o jogo (+20)
+              </button>
+            </div>
+          )}
+
           {/* Sponsored banner */}
           <a
             href="https://www.centauro.com.br"
