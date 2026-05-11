@@ -5,6 +5,7 @@ import { SPORTS, LEVELS, FREQUENCIES, TIME_PREFS, SOCIAL_PROFILES, SPORT_EMOJI }
 import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, Check } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useAuth";
+import { normalizeRedirectPath } from "@/lib/authRedirect";
 
 export const Route = createFileRoute("/onboarding")({
   validateSearch: (s: Record<string, unknown>) => ({ redirect: (s.redirect as string) || "" }),
@@ -52,13 +53,14 @@ function Onboarding() {
     if (step < 3) return setStep(step + 1);
     if (!user) return;
     setSaving(true);
-    await supabase.from("profiles").update({
+    const { error } = await supabase.from("profiles").update({
       name, age: Number(age) || null, city,
       sports, main_sport: main, level, frequency: freq, time_pref: time, social_profile: social,
     }).eq("id", user.id);
     setSaving(false);
-    const target = redirect ? decodeURIComponent(redirect) : null;
-    if (target) window.location.href = target;
+    if (error) return;
+    const target = normalizeRedirectPath(redirect, "/");
+    if (target !== "/") window.location.href = target;
     else nav({ to: "/" });
   };
 
