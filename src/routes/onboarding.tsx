@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase/client";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { SPORTS, LEVELS, FREQUENCIES, TIME_PREFS, SOCIAL_PROFILES, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, Check } from "lucide-react";
@@ -8,7 +9,7 @@ import { useRequireAuth } from "@/hooks/useAuth";
 import { normalizeRedirectPath } from "@/lib/authRedirect";
 
 export const Route = createFileRoute("/onboarding")({
-  validateSearch: (s: Record<string, unknown>) => ({ redirect: (s.redirect as string) || "" }),
+  validateSearch: (s: Record<string, unknown>) => ({ redirect: (s.redirect as string) || undefined }),
   head: () => ({ meta: [{ title: "Bem-vindo à Comunidade Spoint" }] }),
   component: Onboarding,
 });
@@ -29,11 +30,12 @@ function Onboarding() {
   const [social, setSocial] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Pre-fill name from existing profile (created by trigger)
+  // Pre-fill name from existing profile
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("name, age, city, sports, main_sport, level, frequency, time_pref, social_profile").eq("id", user.id).maybeSingle().then(({ data }) => {
-      if (!data) return;
+    getDoc(doc(db, "profiles", user.uid)).then((snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
       if (data.name) setName(data.name);
       if (data.age) setAge(String(data.age));
       if (data.city) setCity(data.city);
@@ -53,12 +55,18 @@ function Onboarding() {
     if (step < 3) return setStep(step + 1);
     if (!user) return;
     setSaving(true);
-    const { error } = await supabase.from("profiles").update({
-      name, age: Number(age) || null, city,
-      sports, main_sport: main, level, frequency: freq, time_pref: time, social_profile: social,
-    }).eq("id", user.id);
+    try {
+      await setDoc(doc(db, "profiles", user.uid), {
+        name, age: Number(age) || null, city,
+        sports, main_sport: main, level, frequency: freq, time_pref: time, social_profile: social,
+      }, { merge: true });
+    } catch (error) {
+      console.error(error);
+      setSaving(false);
+      return;
+    }
     setSaving(false);
-    if (error) return;
+    
     const target = normalizeRedirectPath(redirect, "/");
     if (target !== "/") window.location.href = target;
     else nav({ to: "/" });

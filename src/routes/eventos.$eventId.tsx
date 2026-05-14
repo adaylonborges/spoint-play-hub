@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase/client";
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, setDoc, deleteDoc, addDoc, orderBy, limit } from "firebase/firestore";
 import { SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, MapPin, Check, MessageCircle, Share2, CalendarPlus, ExternalLink, Camera, Sparkles } from "lucide-react";
@@ -50,27 +51,84 @@ function EventPage() {
   const { data: event } = useQuery({
     enabled: !!user,
     queryKey: ["event", eventId],
-    queryFn: async () => (await supabase.from("events").select("*").eq("id", eventId).single()).data,
+    queryFn: async () => {
+      const docSnap = await getDoc(doc(db, "events", eventId));
+      return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as any : null;
+    },
   });
   const { data: parts } = useQuery({
     enabled: !!user,
     queryKey: ["parts", eventId],
-    queryFn: async () => (await supabase.from("event_participants").select("*, profiles(name)").eq("event_id", eventId)).data ?? [],
+    queryFn: async () => {
+      const q = query(collection(db, "event_participants"), where("event_id", "==", eventId));
+      const snaps = await getDocs(q);
+      const results = [];
+      for (const d of snaps.docs) {
+        const p = d.data();
+        let profileName = "Convidado";
+        if (p.user_id) {
+          const profSnap = await getDoc(doc(db, "profiles", p.user_id));
+          if (profSnap.exists()) profileName = profSnap.data().name || "Convidado";
+        }
+        results.push({ id: d.id, ...p, profiles: { name: profileName } });
+      }
+      return results;
+    },
   });
   const { data: dates } = useQuery({
     enabled: !!user,
     queryKey: ["dates", eventId],
-    queryFn: async () => (await supabase.from("event_dates").select("*, event_date_votes(user_id)").eq("event_id", eventId)).data ?? [],
+    queryFn: async () => {
+      const q = query(collection(db, "event_dates"), where("event_id", "==", eventId));
+      const snaps = await getDocs(q);
+      const results = [];
+      for (const d of snaps.docs) {
+        const dt = d.data();
+        const vq = query(collection(db, "event_date_votes"), where("event_date_id", "==", d.id));
+        const vsnaps = await getDocs(vq);
+        const votes = vsnaps.docs.map(v => ({ id: v.id, ...v.data() }));
+        results.push({ id: d.id, ...dt, event_date_votes: votes });
+      }
+      return results;
+    },
   });
   const { data: messages } = useQuery({
     enabled: !!user,
     queryKey: ["msgs-preview", eventId],
-    queryFn: async () => (await supabase.from("event_messages").select("*, profiles(name)").eq("event_id", eventId).order("created_at", { ascending: false }).limit(2)).data ?? [],
+    queryFn: async () => {
+      const q = query(collection(db, "event_messages"), where("event_id", "==", eventId), orderBy("created_at", "desc"), limit(2));
+      const snaps = await getDocs(q);
+      const results = [];
+      for (const d of snaps.docs) {
+        const m = d.data();
+        let profileName = "Usuário";
+        if (m.user_id) {
+          const profSnap = await getDoc(doc(db, "profiles", m.user_id));
+          if (profSnap.exists()) profileName = profSnap.data().name || "Usuário";
+        }
+        results.push({ id: d.id, ...m, profiles: { name: profileName } });
+      }
+      return results;
+    },
   });
   const { data: photos } = useQuery({
     enabled: !!user,
     queryKey: ["photos", eventId],
-    queryFn: async () => (await (supabase as any).from("event_photos").select("*, profiles(name)").eq("event_id", eventId).order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => {
+      const q = query(collection(db, "event_photos"), where("event_id", "==", eventId), orderBy("created_at", "desc"));
+      const snaps = await getDocs(q);
+      const results = [];
+      for (const d of snaps.docs) {
+        const p = d.data();
+        let profileName = "Atleta";
+        if (p.user_id) {
+          const profSnap = await getDoc(doc(db, "profiles", p.user_id));
+          if (profSnap.exists()) profileName = profSnap.data().name || "Atleta";
+        }
+        results.push({ id: d.id, ...p, profiles: { name: profileName } });
+      }
+      return results;
+    },
   });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -97,7 +155,7 @@ function EventPage() {
     })).sort((a, b) => b.votes - a.votes || a.time - b.time);
     const winner = ranked[0];
     if (!winner) return;
-    supabase.from("events").update({ confirmed_date: winner.date }).eq("id", eventId).then(() => {
+    updateDoc(doc(db, "events", eventId), { confirmed_date: winner.date }).then(() => {
       qc.invalidateQueries({ queryKey: ["event", eventId] });
     });
   }, [votingClosed, isOwner, dates, eventId, qc]);
@@ -111,22 +169,29 @@ function EventPage() {
 
   const setRsvp = async (status: string) => {
     if (me) {
-      await supabase.from("event_participants").update({ rsvp_status: status }).eq("id", me.id);
+      await updateDoc(doc(db, "event_participants", me.id), { rsvp_status: status });
     } else {
-      await supabase.from("event_participants").insert({ event_id: eventId, user_id: user.id, rsvp_status: status });
+      const partId = `${eventId}_${user.id}`;
+      await setDoc(doc(db, "event_participants", partId), { event_id: eventId, user_id: user.id, rsvp_status: status });
     }
     qc.invalidateQueries({ queryKey: ["parts", eventId] });
   };
 
   const togglePaid = async (id: string, paid: boolean, userId: string) => {
     if (userId !== user.id && !isOwner) return;
-    await supabase.from("event_participants").update({ paid: !paid }).eq("id", id);
+    await updateDoc(doc(db, "event_participants", id), { paid: !paid });
     qc.invalidateQueries({ queryKey: ["parts", eventId] });
   };
 
   const vote = async (dateId: string) => {
-    await supabase.from("event_date_votes").delete().eq("user_id", user.id).in("event_date_id", (dates ?? []).map((d: any) => d.id));
-    await supabase.from("event_date_votes").insert({ event_date_id: dateId, user_id: user.id });
+    const userVotesQ = query(collection(db, "event_date_votes"), where("user_id", "==", user.id));
+    const userVotesSnaps = await getDocs(userVotesQ);
+    const dateIds = (dates ?? []).map((d: any) => d.id);
+    const toDelete = userVotesSnaps.docs.filter(d => dateIds.includes(d.data().event_date_id));
+    for (const v of toDelete) {
+      await deleteDoc(doc(db, "event_date_votes", v.id));
+    }
+    await addDoc(collection(db, "event_date_votes"), { event_date_id: dateId, user_id: user.id });
     qc.invalidateQueries({ queryKey: ["dates", eventId] });
   };
 
@@ -197,7 +262,7 @@ function EventPage() {
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
       }
       try {
-        await awardShare(eventId);
+        await awardShare(eventId, user.id);
         toast.success("+20 Spoints por compartilhar! 🔗");
         qc.invalidateQueries({ queryKey: ["profile-spoints", user.id] });
         qc.invalidateQueries({ queryKey: ["profile-full", user.id] });

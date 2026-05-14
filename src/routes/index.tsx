@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { auth, db } from "@/lib/firebase/client";
+import { doc, getDoc, collection, query, where, getDocs, updateDoc } from "firebase/firestore";
 import { SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
 import { Bell, Calendar, ChevronRight, Plus, MapPin, Check, X, Mail } from "lucide-react";
@@ -30,30 +31,44 @@ function HomePage() {
 
   const { data: profile } = useQuery({
     enabled: !!user,
-    queryKey: ["profile", user?.id],
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).single()).data,
+    queryKey: ["profile", user?.uid],
+    queryFn: async () => {
+      const snap = await getDoc(doc(db, "profiles", user!.uid));
+      return snap.data();
+    },
   });
 
   const { data: rows } = useQuery({
     enabled: !!user,
-    queryKey: ["my-events-list", user?.id],
+    queryKey: ["my-events-list", user?.uid],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("event_participants")
-        .select("event_id, rsvp_status, events(id, title, sport, location, confirmed_date, owner_id)")
-        .eq("user_id", user!.id);
-      return (data ?? []).filter((r: any) => r.events) as unknown as PartRow[];
+      // In Firestore, we might need to query participants collection
+      const q = query(collection(db, "event_participants"), where("user_id", "==", user!.uid));
+      const snap = await getDocs(q);
+      
+      const results: PartRow[] = [];
+      for (const pDoc of snap.docs) {
+        const pData = pDoc.data();
+        const evSnap = await getDoc(doc(db, "events", pData.event_id));
+        if (evSnap.exists()) {
+          results.push({
+            event_id: pData.event_id,
+            rsvp_status: pData.rsvp_status,
+            events: { id: evSnap.id, ...evSnap.data() } as EvRow
+          });
+        }
+      }
+      return results;
     },
   });
 
   const respond = async (eventId: string, status: "confirmed" | "declined") => {
     if (!user) return;
-    await supabase
-      .from("event_participants")
-      .update({ rsvp_status: status })
-      .eq("user_id", user.id)
-      .eq("event_id", eventId);
-    qc.invalidateQueries({ queryKey: ["my-events-list", user.id] });
+    // We need to find the participant doc id. 
+    // Usually better to have participant ID = `${eventId}_${userId}`
+    const pRef = doc(db, "event_participants", `${eventId}_${user.uid}`);
+    await updateDoc(pRef, { rsvp_status: status });
+    qc.invalidateQueries({ queryKey: ["my-events-list", user.uid] });
   };
 
   if (loading || !user) return <AppShell><div className="screen">Carregando...</div></AppShell>;

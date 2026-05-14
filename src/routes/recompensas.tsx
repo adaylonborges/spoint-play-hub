@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, Gift, Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase/client";
+import { doc, getDoc } from "firebase/firestore";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { SPOINTS_RULES } from "@/lib/spoints";
 
@@ -15,8 +16,11 @@ function RecompensasPage() {
   const { user, loading } = useRequireAuth();
   const { data: profile } = useQuery({
     enabled: !!user,
-    queryKey: ["profile-spoints", user?.id],
-    queryFn: async () => (await supabase.from("profiles").select("spoints").eq("id", user!.id).single()).data,
+    queryKey: ["profile-spoints", user?.uid],
+    queryFn: async () => {
+      const snap = await getDoc(doc(db, "profiles", user!.uid));
+      return snap.exists() ? { spoints: snap.data().spoints } : null;
+    },
   });
 
   if (loading || !user) return <AppShell><div className="screen">Carregando...</div></AppShell>;
@@ -63,3 +67,4 @@ function RecompensasPage() {
     </AppShell>
   );
 }
+

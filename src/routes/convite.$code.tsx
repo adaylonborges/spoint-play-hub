@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase/client";
+import { collection, query, where, limit, getDocs, getDoc, doc, addDoc } from "firebase/firestore";
 import { AppShell } from "@/components/AppShell";
 import { SPORT_EMOJI } from "@/lib/constants";
 import { MapPin, LogIn } from "lucide-react";
@@ -26,10 +27,39 @@ function InvitePage() {
 
   useEffect(() => {
     (async () => {
-      const { data, error } = await supabase.rpc("get_event_by_invite", { _code: code });
-      if (error) setError("Convite inválido");
-      const row = (data as Preview[] | null)?.[0];
-      setEvent(row ?? null);
+      try {
+        const q = query(collection(db, "events"), where("invite_code", "==", code), limit(1));
+        const snap = await getDocs(q);
+        
+        if (snap.empty) {
+          setError("Convite inválido");
+          setEvent(null);
+          setLoading(false);
+          return;
+        }
+
+        const evData = snap.docs[0].data();
+        const evId = snap.docs[0].id;
+
+        let owner_name = null;
+        if (evData.owner_id) {
+          const pSnap = await getDoc(doc(db, "profiles", evData.owner_id));
+          if (pSnap.exists()) owner_name = pSnap.data().name;
+        }
+
+        setEvent({
+          id: evId,
+          title: evData.title || "",
+          sport: evData.sport || "",
+          location: evData.location || null,
+          address: evData.address || null,
+          confirmed_date: evData.confirmed_date || null,
+          owner_name
+        });
+      } catch (err) {
+        console.error(err);
+        setError("Erro ao carregar convite");
+      }
       setLoading(false);
     })();
   }, [code]);
@@ -37,16 +67,27 @@ function InvitePage() {
   const join = async () => {
     if (!user || !event) return;
     setJoining(true);
-    // Insert as "invited" so it shows up as a pending invite the user can accept/decline.
-    const { error } = await supabase.from("event_participants").upsert(
-      { event_id: event.id, user_id: user.id, rsvp_status: "invited" },
-      { onConflict: "event_id,user_id" } as any,
-    );
-    setJoining(false);
-    if (error) {
-      await supabase.from("event_participants").insert({ event_id: event.id, user_id: user.id, rsvp_status: "invited" });
+    try {
+      const pq = query(
+        collection(db, "event_participants"),
+        where("event_id", "==", event.id),
+        where("user_id", "==", user.uid)
+      );
+      const psnap = await getDocs(pq);
+      
+      if (psnap.empty) {
+        await addDoc(collection(db, "event_participants"), {
+          event_id: event.id,
+          user_id: user.uid,
+          rsvp_status: "invited",
+          joined_at: new Date().toISOString()
+        });
+      }
+      nav({ to: "/eventos/$eventId", params: { eventId: event.id } });
+    } catch (err) {
+      console.error(err);
+      setJoining(false);
     }
-    nav({ to: "/eventos/$eventId", params: { eventId: event.id } });
   };
 
   if (loading || authLoading) return <AppShell hideNav><div className="screen">Carregando...</div></AppShell>;
@@ -100,3 +141,4 @@ function InvitePage() {
     </AppShell>
   );
 }
+

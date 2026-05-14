@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase/client";
+import { collection, query, where, orderBy, onSnapshot, addDoc, getDoc, doc, serverTimestamp } from "firebase/firestore";
 import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, Send } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useAuth";
@@ -23,20 +24,23 @@ function ChatPage() {
   useEffect(() => {
     if (!user) return;
     let mounted = true;
-    (async () => {
-      const { data } = await supabase.from("event_messages").select("*, profiles(name)").eq("event_id", eventId).order("created_at");
-      if (mounted) setMsgs((data as any) ?? []);
-    })();
 
-    const channel = supabase.channel(`chat-${eventId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "event_messages", filter: `event_id=eq.${eventId}` }, async (payload) => {
-        const m = payload.new as any;
-        const { data: prof } = await supabase.from("profiles").select("name").eq("id", m.user_id).single();
-        setMsgs((prev) => prev.some(x => x.id === m.id) ? prev : [...prev, { ...m, profiles: prof ?? undefined }]);
-      })
-      .subscribe();
+    const qStream = query(collection(db, "event_messages"), where("event_id", "==", eventId), orderBy("created_at"));
+    const unsubscribe = onSnapshot(qStream, async (snapshot) => {
+      const newMsgs = [];
+      for (const d of snapshot.docs) {
+        const m = d.data();
+        let profileName = "Usuário";
+        if (m.user_id) {
+          const profSnap = await getDoc(doc(db, "profiles", m.user_id));
+          if (profSnap.exists()) profileName = profSnap.data().name || "Usuário";
+        }
+        newMsgs.push({ id: d.id, ...m, profiles: { name: profileName } });
+      }
+      if (mounted) setMsgs(newMsgs as any);
+    });
 
-    return () => { mounted = false; supabase.removeChannel(channel); };
+    return () => { mounted = false; unsubscribe(); };
   }, [eventId, user]);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
@@ -45,7 +49,12 @@ function ChatPage() {
     if (!text.trim() || !user) return;
     const content = text.trim();
     setText("");
-    await supabase.from("event_messages").insert({ event_id: eventId, user_id: user.id, content });
+    await addDoc(collection(db, "event_messages"), {
+      event_id: eventId,
+      user_id: user.id,
+      content,
+      created_at: serverTimestamp()
+    });
   };
 
   if (loading || !user) return <AppShell hideNav><div className="screen">Carregando...</div></AppShell>;

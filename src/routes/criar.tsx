@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { nanoid } from "nanoid";
-import { supabase } from "@/integrations/supabase/client";
+import { db } from "@/lib/firebase/client";
+import { collection, addDoc } from "firebase/firestore";
 import { SPORTS, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, DollarSign } from "lucide-react";
@@ -31,8 +32,8 @@ function Criar() {
     setSaving(true); setError("");
     try {
       const inviteCode = nanoid(8);
-      const { data: ev, error: evErr } = await supabase.from("events").insert({
-        owner_id: user.id,
+      const evRef = await addDoc(collection(db, "events"), {
+        owner_id: user.uid,
         sport,
         title: title || `${sport} entre amigos`,
         location: place?.name ?? "",
@@ -41,20 +42,29 @@ function Criar() {
         longitude: place?.lng ?? null,
         total_cost: Number(cost) || 0,
         invite_code: inviteCode,
-      }).select().single();
-      if (evErr) throw evErr;
+        created_at: new Date().toISOString(),
+      });
+      const evId = evRef.id;
 
       const validDates = dates.filter(Boolean);
-      if (validDates.length) {
-        await supabase.from("event_dates")
-          .insert(validDates.map(d => ({ event_id: ev.id, proposed_date: new Date(d).toISOString() })));
+      for (const d of validDates) {
+        await addDoc(collection(db, "event_dates"), {
+          event_id: evId,
+          proposed_date: new Date(d).toISOString()
+        });
       }
+
       // Owner is auto-confirmed participant
-      await supabase.from("event_participants").insert({ event_id: ev.id, user_id: user.id, rsvp_status: "confirmed" });
+      await addDoc(collection(db, "event_participants"), {
+        event_id: evId,
+        user_id: user.uid,
+        rsvp_status: "confirmed",
+        joined_at: new Date().toISOString()
+      });
 
       toast.success("Evento criado! +50 Spoints 🎯");
 
-      nav({ to: "/eventos/$eventId", params: { eventId: ev.id } });
+      nav({ to: "/eventos/$eventId", params: { eventId: evId } });
     } catch (e: any) {
       setError(e.message ?? "Erro ao criar evento");
     } finally { setSaving(false); }
@@ -133,3 +143,4 @@ function Criar() {
     </AppShell>
   );
 }
+

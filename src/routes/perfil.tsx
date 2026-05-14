@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { auth, db } from "@/lib/firebase/client";
+import { doc, getDoc, collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
 import { SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
 import { ChevronLeft, Settings, LogOut, Sparkles, Gift, ChevronRight } from "lucide-react";
@@ -17,36 +18,67 @@ function PerfilPage() {
 
   const { data: profile } = useQuery({
     enabled: !!user,
-    queryKey: ["profile-full", user?.id],
-    queryFn: async () => (await supabase.from("profiles").select("*").eq("id", user!.id).single()).data,
+    queryKey: ["profile-full", user?.uid],
+    queryFn: async () => {
+      const snap = await getDoc(doc(db, "profiles", user!.uid));
+      return snap.exists() ? { id: snap.id, ...snap.data() } as any : null;
+    },
   });
   const { data: events } = useQuery({
     enabled: !!user,
-    queryKey: ["my-events", user?.id],
+    queryKey: ["my-events", user?.uid],
     queryFn: async () => {
-      const { data: parts } = await supabase.from("event_participants").select("event_id").eq("user_id", user!.id);
-      const ids = (parts ?? []).map((p) => p.event_id);
+      const partsQ = query(collection(db, "event_participants"), where("user_id", "==", user!.uid));
+      const partsSnap = await getDocs(partsQ);
+      const ids = partsSnap.docs.map(d => d.data().event_id as string);
+      
       if (!ids.length) return [];
-      const { data } = await supabase.from("events").select("*").in("id", ids).order("created_at", { ascending: false });
-      return data ?? [];
+      
+      // Fetch each event individually (avoids 10-item limit of "in" queries)
+      const eventPromises = ids.map(id => getDoc(doc(db, "events", id)));
+      const eventSnaps = await Promise.all(eventPromises);
+      
+      const data = eventSnaps
+        .filter(snap => snap.exists())
+        .map(snap => ({ id: snap.id, ...snap.data() } as any));
+        
+      data.sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateB - dateA; // descending
+      });
+      return data;
     },
   });
   const { data: txs } = useQuery({
     enabled: !!user,
-    queryKey: ["spoint-tx", user?.id],
+    queryKey: ["spoint-tx", user?.uid],
     queryFn: async () => {
-      const { data } = await (supabase as any)
-        .from("spoint_transactions")
-        .select("id, kind, amount, event_id, created_at, events(title)")
-        .eq("user_id", user!.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      return data ?? [];
+      const txQ = query(
+        collection(db, "spoint_transactions"),
+        where("user_id", "==", user!.uid),
+        orderBy("created_at", "desc"),
+        limit(10)
+      );
+      const txSnap = await getDocs(txQ);
+      const transactions = txSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      
+      // Fetch event titles
+      for (const tx of transactions) {
+        if (tx.event_id) {
+          const evSnap = await getDoc(doc(db, "events", tx.event_id));
+          if (evSnap.exists()) {
+            tx.events = { title: evSnap.data().title };
+          }
+        }
+      }
+      
+      return transactions;
     },
   });
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    await auth.signOut();
     window.location.href = "/login";
   };
 
@@ -170,3 +202,4 @@ function PerfilPage() {
     </AppShell>
   );
 }
+

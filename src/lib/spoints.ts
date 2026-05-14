@@ -1,4 +1,6 @@
-import { supabase } from "@/integrations/supabase/client";
+import { db, storage } from "@/lib/firebase/client";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { collection, addDoc, doc, updateDoc, increment } from "firebase/firestore";
 
 export const SPOINTS_RULES = [
   { kind: "create_event", icon: "🎯", label: "Criar um jogo", amount: 50 },
@@ -26,20 +28,52 @@ export const KIND_ICON: Record<string, string> = {
 
 export async function uploadEventPhoto(file: File, eventId: string, userId: string) {
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-  const path = `${eventId}/${userId}/photo.${ext}`;
-  const { error: upErr } = await supabase.storage.from("event-photos").upload(path, file, { upsert: true, contentType: file.type });
-  if (upErr) throw upErr;
-  const { error: dbErr } = await supabase.from("event_photos").insert({ event_id: eventId, user_id: userId, storage_path: path });
-  if (dbErr) throw dbErr;
+  const path = `event-photos/${eventId}/${userId}/photo.${Date.now()}.${ext}`;
+  const storageRef = ref(storage, path);
+  
+  await uploadBytes(storageRef, file);
+  const downloadUrl = await getDownloadURL(storageRef);
+  
+  const now = new Date().toISOString();
+
+  await addDoc(collection(db, "event_photos"), {
+    event_id: eventId,
+    user_id: userId,
+    storage_path: path,
+    url: downloadUrl,
+    created_at: now
+  });
+
+  // Award Spoints for photo
+  await updateDoc(doc(db, "profiles", userId), {
+    spoints: increment(50)
+  });
+  await addDoc(collection(db, "spoint_transactions"), {
+    user_id: userId,
+    event_id: eventId,
+    kind: "photo",
+    amount: 50,
+    created_at: now
+  });
+
   return path;
 }
 
 export function publicPhotoUrl(path: string) {
-  return supabase.storage.from("event-photos").getPublicUrl(path).data.publicUrl;
+  return path; 
 }
 
-export async function awardShare(eventId: string) {
-  const { data, error } = await supabase.rpc("award_share", { _event_id: eventId });
-  if (error) throw error;
-  return data as number;
+export async function awardShare(eventId: string, userId: string) {
+  const now = new Date().toISOString();
+  await updateDoc(doc(db, "profiles", userId), {
+    spoints: increment(20)
+  });
+  await addDoc(collection(db, "spoint_transactions"), {
+    user_id: userId,
+    event_id: eventId,
+    kind: "share",
+    amount: 20,
+    created_at: now
+  });
+  return 20;
 }
