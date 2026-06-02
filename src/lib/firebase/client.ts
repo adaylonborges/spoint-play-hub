@@ -4,12 +4,13 @@ import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "demo-key",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "demo-domain.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "demo-spoint",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "demo-spoint.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "00000000000",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:00000000:web:abcdefgh"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyC-uMGOpeYJb3HNnRWVwjIqOni8fJtvRNM",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "spoint-play-hub.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "spoint-play-hub",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "spoint-play-hub.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "688969783166",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:688969783166:web:3ab881ae38f747ead2852f",
+  measurementId: "G-FS1KQW20PG"
 };
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
