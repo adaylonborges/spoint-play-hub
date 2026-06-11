@@ -22,12 +22,12 @@ fi
 # 2. Verificar se firebase-tools está instalado ou usar npx
 FIREBASE_CMD="firebase"
 if ! command -v firebase &> /dev/null; then
-    echo -e "${YELLOW}Aviso: 'firebase' global não foi encontrado. Tentando usar via 'npx firebase'...${NC}"
+    echo -e "${YELLOW}Aviso: 'firebase' global não foi encontrado. Tentando usar via 'npx firebase-tools'...${NC}"
     if ! command -v npx &> /dev/null; then
         echo -e "${RED}Erro: 'npx' não encontrado. Por favor, instale o Node.js/npm.${NC}"
         exit 1
     fi
-    FIREBASE_CMD="npx firebase"
+    FIREBASE_CMD="npx firebase-tools"
 fi
 
 # 3. Perguntar as configurações básica
