@@ -88,13 +88,13 @@ deploy_frontend() {
         --description="Spoint Docker images" \
         --quiet 2>/dev/null || true
 
-    IMAGE_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/spoint-repo/spoint-frontend:latest"
+    IMAGE_TAG="${REGION}-docker.pkg.dev/${PROJECT_ID}/spoint-repo/spoint-play-hub:latest"
     
     echo -e "Enviando código do frontend para o Google Cloud Build e compilando imagem..."
     gcloud builds submit --tag $IMAGE_TAG .
 
     echo -e "Publicando container no Google Cloud Run..."
-    gcloud run deploy spoint-frontend \
+    gcloud run deploy spoint-play-hub \
         --image $IMAGE_TAG \
         --region $REGION \
         --platform managed \
