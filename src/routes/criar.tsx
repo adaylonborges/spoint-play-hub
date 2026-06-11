@@ -5,7 +5,7 @@ import { db } from "@/lib/firebase/client";
 import { collection, addDoc } from "firebase/firestore";
 import { SPORTS, SPORT_EMOJI } from "@/lib/constants";
 import { AppShell } from "@/components/AppShell";
-import { ChevronLeft, DollarSign } from "lucide-react";
+import { ChevronLeft, DollarSign, Search, X } from "lucide-react";
 import { useRequireAuth } from "@/hooks/useAuth";
 import { AddressSearch, type Place } from "@/components/AddressSearch";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ function Criar() {
   const [cost, setCost] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const submit = async () => {
     if (!user) return;
@@ -74,7 +75,7 @@ function Criar() {
 
   return (
     <AppShell hideNav>
-      <div className="screen">
+      <div className="screen pb-32">
         <header className="flex items-center gap-3 mb-6">
           <button onClick={() => step === 0 ? nav({ to: "/" }) : setStep(step - 1)} className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
             <ChevronLeft className="h-5 w-5" />
@@ -88,15 +89,53 @@ function Criar() {
           <>
             <h1 className="h1 mb-1">Qual o esporte?</h1>
             <p className="muted mb-5">Escolha e dê um nome ao seu evento</p>
-            <div className="grid grid-cols-3 gap-2 mb-5">
-              {SPORTS.slice(0,9).map(s => (
-                <button key={s} onClick={()=>setSport(s)} className={`rounded-xl p-3 text-xs font-medium border ${sport===s ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border"}`}>
-                  <div className="text-2xl mb-1">{SPORT_EMOJI[s]}</div>{s}
+
+            <div className="relative mb-4">
+              <Search className="absolute left-3.5 top-3.5 h-5 w-5 text-muted-foreground" />
+              <input
+                type="text"
+                className="input pl-11 pr-10"
+                placeholder="Buscar esporte..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3.5 top-3.5 p-0.5 rounded-full hover:bg-muted text-muted-foreground"
+                >
+                  <X className="h-4 w-4" />
                 </button>
-              ))}
+              )}
             </div>
-            <label className="label">Nome do evento</label>
-            <input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="BT no fim de tarde" />
+
+            <div className="grid grid-cols-3 gap-2 mb-5">
+              {SPORTS.filter(s => s.toLowerCase().includes(searchQuery.toLowerCase())).map(s => {
+                const selected = sport === s;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setSport(s)}
+                    className={`rounded-xl p-3 text-xs font-medium border transition flex flex-col items-center justify-center min-h-[90px] ${selected ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-muted/30"}`}
+                  >
+                    <div className="text-2xl mb-1">{SPORT_EMOJI[s]}</div>
+                    <span className="text-center line-clamp-2 leading-tight">{s}</span>
+                  </button>
+                );
+              })}
+              {SPORTS.filter(s => s.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                <div className="col-span-3 text-center py-8 text-muted-foreground text-sm">
+                  Nenhum esporte encontrado.
+                </div>
+              )}
+            </div>
+
+            <div className="mb-4">
+              <label className="label">Nome do evento</label>
+              <input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="BT no fim de tarde" />
+            </div>
+
+            <div className="h-36" />
           </>
         )}
 
@@ -112,6 +151,7 @@ function Criar() {
                 </div>
               ))}
             </div>
+            <div className="h-36" />
           </>
         )}
 
@@ -127,6 +167,7 @@ function Criar() {
             <label className="label"><DollarSign className="inline h-4 w-4 mr-1" />Custo total (R$)</label>
             <input type="number" className="input" value={cost} onChange={e=>setCost(e.target.value)} placeholder="240 (opcional)" />
             {error && <p className="text-sm text-destructive mt-3">{error}</p>}
+            <div className="h-36" />
           </>
         )}
 

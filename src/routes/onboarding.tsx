@@ -83,7 +83,7 @@ function Onboarding() {
 
   return (
     <AppShell hideNav>
-      <div className="screen">
+      <div className="screen pb-32">
         <header className="flex items-center gap-3 mb-6">
           {step > 0 && (
             <button onClick={() => setStep(step - 1)} className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
@@ -124,6 +124,7 @@ function Onboarding() {
                 );
               })}
             </div>
+            <div className="h-36" />
           </div>
         )}
 
@@ -140,6 +141,7 @@ function Onboarding() {
                 </button>
               ))}
             </div>
+            <div className="h-36" />
           </div>
         )}
 
@@ -153,6 +155,7 @@ function Onboarding() {
             <PickGroup label="Frequência" options={FREQUENCIES} value={freq} onChange={setFreq} />
             <PickGroup label="Horário preferido" options={TIME_PREFS} value={time} onChange={setTime} />
             <PickGroup label="Perfil social" options={SOCIAL_PROFILES} value={social} onChange={setSocial} />
+            <div className="h-36" />
           </div>
         )}
 

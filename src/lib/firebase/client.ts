@@ -18,8 +18,10 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-if (import.meta.env.DEV) {
-  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-  connectFirestoreEmulator(db, "127.0.0.1", 8080);
-  connectStorageEmulator(storage, "127.0.0.1", 9199);
-}
+// Se você instalar o Java futuramente e quiser rodar os emuladores locais (npx firebase-tools emulators:start),
+// basta descomentar o bloco abaixo para apontar o app local para o banco simulado.
+// if (import.meta.env.DEV) {
+//   connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+//   connectFirestoreEmulator(db, "127.0.0.1", 8080);
+//   connectStorageEmulator(storage, "127.0.0.1", 9199);
+// }

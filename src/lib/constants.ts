@@ -1,5 +1,7 @@
 export const SPORTS = [
-  "Beach Tennis", "Tênis", "Futebol", "Futsal", "Basquete", "Vôlei",
+  "Beach Tennis", "Tênis", "Futebol", "Futsal", "Basquete", "Vôlei de Quadra",
+  "Futevôlei", "Padel", "Vôlei de Praia", "Tênis de Mesa", "Handebol",
+  "Artes Marciais / Jiu-Jitsu", "Futebol Americano", "Golfe",
   "Corrida", "Ciclismo", "Natação", "Funcional", "Crossfit", "Musculação",
   "Yoga", "Pilates", "Skate", "Surf", "Escalada", "Boxe",
 ];
@@ -15,8 +17,10 @@ export const SOCIAL_PROFILES = [
 
 export const SPORT_EMOJI: Record<string, string> = {
   "Beach Tennis": "🏖️", "Tênis": "🎾", "Futebol": "⚽", "Futsal": "⚽",
-  "Basquete": "🏀", "Vôlei": "🏐", "Corrida": "🏃", "Ciclismo": "🚴",
-  "Natação": "🏊", "Funcional": "💪", "Crossfit": "🏋️", "Musculação": "🏋️",
-  "Yoga": "🧘", "Pilates": "🧘", "Skate": "🛹", "Surf": "🏄",
-  "Escalada": "🧗", "Boxe": "🥊",
+  "Basquete": "🏀", "Vôlei de Quadra": "🏐", "Futevôlei": "🏐", "Padel": "🎾",
+  "Vôlei de Praia": "🏖️", "Tênis de Mesa": "🏓", "Handebol": "🤾",
+  "Artes Marciais / Jiu-Jitsu": "🥋", "Futebol Americano": "🏈", "Golfe": "🏌️",
+  "Corrida": "🏃", "Ciclismo": "🚴", "Natação": "🏊", "Funcional": "💪",
+  "Crossfit": "🏋️", "Musculação": "🏋️", "Yoga": "🧘", "Pilates": "🧘",
+  "Skate": "🛹", "Surf": "🏄", "Escalada": "🧗", "Boxe": "🥊",
 };
